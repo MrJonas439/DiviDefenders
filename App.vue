@@ -1,6 +1,6 @@
 <template>
   <div class="h-full w-full bg-neutral-900 text-white overflow-hidden relative flex flex-col font-sans select-none touch-none">
-    <!-- Game World Container with Shake Effect -->
+    
     <Motion
       class="flex-1 relative overflow-hidden"
       :animate="damageFlash ? { x: [-10, 10, -10, 10, 0] } : { x: 0 }"
@@ -15,7 +15,6 @@
         @monster-hit="handleMonsterHit"
       />
 
-      <!-- Damage Overlay (Screen Flash) -->
       <Motion
         v-if="damageFlash"
         :initial="{ opacity: 0 }"
@@ -24,7 +23,6 @@
         class="absolute inset-0 bg-red-600/40 pointer-events-none z-50"
       />
 
-      <!-- HUD: Stats -->
       <div class="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-50">
         <div class="flex flex-col gap-1">
           <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 shadow-xl">
@@ -66,16 +64,16 @@
       </div>
 
       <div class="absolute inset-y-0 left-0 flex items-center p-2 z-[60] pointer-events-none">
-  <button class="pointer-events-auto bg-black/60 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)">
-    <ChevronLeftIcon class="w-6 h-6" />
-  </button>
-</div>
+        <button class="pointer-events-auto bg-black/60 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)">
+          <ChevronLeftIcon class="w-6 h-6" />
+        </button>
+      </div>
 
-<div class="absolute inset-y-0 right-0 flex items-center p-2 z-[60] pointer-events-none">
-  <button class="pointer-events-auto bg-black/60 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)">
-    <ChevronRightIcon class="w-6 h-6" />
-  </button>
-</div>
+      <div class="absolute inset-y-0 right-0 flex items-center p-2 z-[60] pointer-events-none">
+        <button class="pointer-events-auto bg-black/60 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)">
+          <ChevronRightIcon class="w-6 h-6" />
+        </button>
+      </div>
 
       <div v-if="activeSideKey === 'shop'" class="absolute inset-0 flex items-center justify-center p-4 z-40 pointer-events-none">
         <div class="bg-black/80 backdrop-blur-xl border-2 border-amber-600/50 rounded-2xl w-full max-w-2xl h-[70%] overflow-hidden flex flex-col pointer-events-auto shadow-2xl">
@@ -102,7 +100,7 @@
               </div>
               <div class="mt-3 flex items-center justify-between">
                 <span class="text-lg font-black text-yellow-400">{{ getPrice(item) }}G</span>
-               <button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" @click="buyItem(item)">BUY</button>
+                <button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" @click="buyItem(item)">BUY</button>
               </div>
             </div>
           </div>
@@ -117,19 +115,21 @@
     <div v-if="gameState !== 'active'" class="absolute inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center">
       <div class="max-w-sm space-y-6">
         <h1 class="text-4xl font-black tracking-tighter text-yellow-500">LEGEND OF DIVISION</h1>
+        
         <div v-if="gameState === 'start'" class="space-y-4">
-          <p class="text-lg text-amber-100 italic">"Choose your path, Commander. The castle's fate rests on your tactical precision."</p>
+          <p class="text-lg text-amber-100 italic">"Choose your path, Commander. The castle's fate rests on your precision."</p>
           <div class="grid grid-cols-2 gap-3">
             <button class="bg-green-700 hover:bg-green-600 border-b border-green-900 text-sm py-3 rounded-lg font-bold" @click="startGame('easy')">EASY</button>
-<button class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3 rounded-lg font-bold" @click="startGame('medium')">MEDIUM</button>
-<button class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3 rounded-lg font-bold" @click="startGame('hard')">HARD</button>
-<button class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3 rounded-lg font-bold" @click="startGame('remix')">REMIX</button>
+            <button class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3 rounded-lg font-bold" @click="startGame('medium')">MEDIUM</button>
+            <button class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3 rounded-lg font-bold" @click="startGame('hard')">HARD</button>
+            <button class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3 rounded-lg font-bold" @click="startGame('remix')">REMIX</button>
           </div>
         </div>
+
         <div v-if="gameState === 'gameOver'" class="space-y-4">
           <h2 class="text-3xl font-bold text-red-500 uppercase tracking-widest">The Wall Has Fallen</h2>
           <p class="text-xl text-amber-100">Glory Earned: {{ score }}</p>
-        <button class="w-full text-xl py-4 bg-blue-600 rounded-lg font-bold" @click="startGame(difficulty)">Return to Battle</button>
+          <button class="w-full text-xl py-4 bg-blue-600 rounded-lg font-bold" @click="startGame(difficulty)">Return to Battle</button>
         </div>
       </div>
     </div>
@@ -148,14 +148,12 @@ import GameWorld from './GameWorld.vue'
 import PrepArea from './PrepArea.vue'
 import MathHUD from './MathHUD.vue'
 
-// Since we deleted useToast from 'elements', let's make a tiny fake toast to prevent crashes!
 const toast = {
   info: (msg) => console.log('INFO:', msg),
   error: (msg) => console.log('ERROR:', msg)
 }
 
 const gameState = ref('start')
-// ... (leave the rest of your script exactly as it was!)
 const difficulty = ref('easy')
 const lives = ref(3)
 const maxLives = ref(3)
@@ -217,8 +215,8 @@ function buyItem(item) {
   gold.value -= finalPrice
   if (item.id === 'masonry') lives.value = Math.min(maxLives.value, lives.value + 1)
   else if (item.id === 'fortify') { maxLives.value++; lives.value++ }
-  else if (item.id === 'phoenix' && ['left', 'center', 'right'].includes(activeSideKey.value)) { sides[activeSideKey.value].monsters = []; setTimeout(() => generateTaskForSide(activeSideKey.value), 3000) }
-  else if (item.id === 'dragon') ['left', 'center', 'right'].forEach(k => { sides[k].monsters = []; setTimeout(() => generateTaskForSide(k), 3000) })
+  else if (item.id === 'phoenix' && ['left', 'center', 'right'].includes(activeSideKey.value)) { sides[activeSideKey.value].monsters = []; safeGenerateNextTask(activeSideKey.value) }
+  else if (item.id === 'dragon') ['left', 'center', 'right'].forEach(k => { sides[k].monsters = []; safeGenerateNextTask(k) })
   else activeUpgrades[item.id]++
   toast.info(`Purchased ${item.name}!`)
 }
@@ -244,14 +242,12 @@ function generateTaskForSide(k) {
   else { pMonster = divisors[Math.floor(Math.random() * divisors.length)]; mCount = Math.floor(Math.random() * 5) + 2 }
   const total = mCount * pMonster
   side.task = isSharing ? { type: 'sharing', total, count: mCount, question: `I need ${total} arrows for ${mCount} monsters. How many per monster?`, answer: pMonster }
-                         : { type: 'grouping', total, perMonster: pMonster, question: `I have ${total} arrows. Each monster needs ${pMonster}. How many monsters?`, answer: mCount }
+                       : { type: 'grouping', total, perMonster: pMonster, question: `I have ${total} arrows. Each monster needs ${pMonster}. How many monsters?`, answer: mCount }
   side.monsters = Array.from({ length: mCount }, (_, i) => ({ id: Math.random().toString(36).substr(2, 9), progress: 0, idx: i, count: mCount }))
 }
 
-// --- 🛠️ REPLACEMENT CODE FOR THE BOTTOM OF APP.VUE SCRIPT ---
-
 let lastGoldTick = Date.now()
-const isGeneratingTask = reactive({ left: false, center: false, right: false }) // 👈 Prevents duplicate wave overlapping!
+const isGeneratingTask = reactive({ left: false, center: false, right: false })
 
 function updateMonsters() {
   if (gameState.value !== 'active') return
@@ -259,10 +255,10 @@ function updateMonsters() {
   const tick = activeUpgrades.alchemist ? 3000 : 5000
   if (now - lastGoldTick > tick) { gold.value += currentPassiveIncome.value; lastGoldTick = now }
   
-  const dt = 0.005 * (activeUpgrades.ice ? 0.8 : 1) // 👈 Smoother speed step
+  const dt = 0.005 * (activeUpgrades.ice ? 0.8 : 1)
   
   Object.keys(sides).forEach(k => {
-    if (k === 'shop' || sides[k].status !== 'active' || isGeneratingTask[k]) return // 👈 Skip if resetting!
+    if (k === 'shop' || sides[k].status !== 'active' || isGeneratingTask[k]) return
     
     let failed = false; 
     sides[k].monsters.forEach(m => { 
@@ -274,12 +270,10 @@ function updateMonsters() {
   })
 }
 
-// 🛡️ Consolidated, safe task generation
 function safeGenerateNextTask(k) {
   if (isGeneratingTask[k] || gameState.value !== 'active') return
   isGeneratingTask[k] = true
   
-  // Clear old data instantly so the UI doesn't glitch
   sides[k].monsters = []
   sides[k].task = null 
 
@@ -290,7 +284,7 @@ function safeGenerateNextTask(k) {
     }
     generateTaskForSide(k)
     isGeneratingTask[k] = false
-  }, 3000) // 3-second breathing room between waves
+  }, 3000)
 }
 
 async function handleSubmission(prep) {
@@ -298,7 +292,7 @@ async function handleSubmission(prep) {
   const sideKey = activeSideKey.value
   const side = sides[sideKey]; 
   const t = side.task; 
-  if (!t || isGeneratingTask[sideKey]) return // 👈 Abort if resetting
+  if (!t || isGeneratingTask[sideKey]) return
 
   const correct = (t.type === 'sharing' 
     ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
@@ -323,7 +317,7 @@ async function handleSubmission(prep) {
       if (world.value) await world.value.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
     } finally { 
       isFiring.value = false; 
-      safeGenerateNextTask(sideKey) // 👈 Safe handoff
+      safeGenerateNextTask(sideKey)
     }
   } else { 
     battleCombo.value = 0; 
@@ -339,7 +333,7 @@ function handleMonsterHit(k) {
   damageFlash.value = true; 
   setTimeout(() => damageFlash.value = false, 300)
   
-  safeGenerateNextTask(k) // 👈 Safe handoff
+  safeGenerateNextTask(k)
   
   if (lives.value <= 0) { 
     gameState.value = 'gameOver'; 
@@ -350,3 +344,4 @@ function handleMonsterHit(k) {
 onUnmounted(() => {
   if (gameTickInterval) clearInterval(gameTickInterval)
 })
+</script>
