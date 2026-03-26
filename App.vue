@@ -483,10 +483,13 @@ async function handleSubmission(prep) {
   const t = side.task; 
   if (!t || isGeneratingTask[sideKey]) return
 
-  // 🛠️ BUG FIX: Loosened checks so the first wave doesn't get stuck!
+  // 🧮 Multiply your placed monsters by arrows per monster to find your own Total!
+  const calculatedTotal = prep.monsterCount * prep.perMonster
+
+  // ✅ Smarter check: Did the user distribute the math correctly?
   const correct = t.type === 'sharing' 
     ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
-    : (prep.totalArrows === t.total && prep.monsterCount === t.answer)
+    : (calculatedTotal === t.total && prep.monsterCount === t.answer)
 
   if (correct) {
     isFiring.value = true; 
