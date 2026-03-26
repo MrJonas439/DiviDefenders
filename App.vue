@@ -161,7 +161,11 @@
         <div v-if="gameState === 'leaderboard'" class="space-y-4">
           <h2 class="text-3xl font-bold text-yellow-500 uppercase">Leaderboards</h2>
           <div class="bg-black/50 border border-white/20 rounded-lg p-4 h-64 overflow-y-auto text-left flex flex-col gap-2">
-            <div class="text-xs text-white/50 text-center italic mt-10">Connecting to Supabase Leaderboard...</div>
+            <div v-if="leaderboardData.length === 0" class="text-xs text-white/50 text-center italic mt-10">Connecting to Cloud Spreadsheet...</div>
+            <div v-for="(player, index) in leaderboardData" :key="index" class="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/10">
+              <span class="text-sm font-bold text-white"><span class="text-yellow-400 mr-1">#{{ index + 1 }}</span> {{ player.username }}</span>
+              <span class="text-sm font-black text-amber-400">{{ player.score }} G</span>
+            </div>
           </div>
           <button class="w-full text-lg py-4 bg-neutral-800 hover:bg-neutral-700 rounded-lg font-bold" @click="quitToMenu">Back to Menu</button>
         </div>
@@ -173,15 +177,27 @@
             <div class="flex justify-between text-sm"><span class="text-white/60">Gold Saved:</span> <span class="text-white font-bold">{{ gold }}</span></div>
             <div class="flex justify-between text-lg font-black border-t border-white/10 mt-2 pt-2"><span class="text-yellow-400">Final Score:</span> <span class="text-yellow-400">{{ calculatedScore }}</span></div>
           </div>
-          <button class="w-full text-lg py-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold" @click="quitToMenu">Submit Score & Menu</button>
+
+          <div class="flex flex-col gap-2 bg-black/50 p-3 rounded-lg border border-white/20">
+            <label class="text-xs text-white/50 font-bold uppercase tracking-wider text-left">Enter Your Name:</label>
+            <input type="text" v-model="playerName" placeholder="Commander Name" class="p-2 bg-neutral-800 border border-white/30 rounded text-white font-bold" maxlength="15" />
+          </div>
+
+          <button @click="submitScoreToSupabase" class="w-full text-lg py-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold" :disabled="!playerName">Save & Submit Score</button>
         </div>
 
         <div v-if="gameState === 'gameOver'" class="space-y-4">
           <h2 class="text-3xl font-bold text-red-500 uppercase tracking-widest">The Wall Has Fallen</h2>
           <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
-            <div class="flex justify-between text-sm font-bold"><span class="text-white/60">Final Score:</span> <span class="text-white">{{ calculatedScore }}</span></div>
+            <div class="flex justify-between text-lg font-black"><span class="text-red-400">Final Score:</span> <span class="text-red-400">{{ calculatedScore }}</span></div>
           </div>
-          <button class="w-full text-lg py-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold" @click="quitToMenu">Return to Menu</button>
+
+          <div class="flex flex-col gap-2 bg-black/50 p-3 rounded-lg border border-white/20">
+            <label class="text-xs text-white/50 font-bold uppercase tracking-wider text-left">Enter Your Name:</label>
+            <input type="text" v-model="playerName" placeholder="Commander Name" class="p-2 bg-neutral-800 border border-white/30 rounded text-white font-bold" maxlength="15" />
+          </div>
+
+          <button @click="submitScoreToSupabase" class="w-full text-lg py-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold" :disabled="!playerName">Save & Submit Score</button>
         </div>
       </div>
     </div>
@@ -199,6 +215,9 @@ import { Motion } from 'motion-v'
 import GameWorld from './GameWorld.vue'
 import PrepArea from './PrepArea.vue'
 import MathHUD from './MathHUD.vue'
+
+// 📡 IMPORT SUPABASE CONNECTION FILE
+import { supabase } from './supabase.js'
 
 const toast = {
   info: (msg) => console.log('INFO:', msg),
@@ -223,15 +242,18 @@ const xpToNextLevel = computed(() => commanderLevel.value * 500)
 const battleCombo = ref(0)
 const maxCombo = ref(0)
 
-const wavesCleared = ref(0) // 🌊 Track Waves Cleared
+const wavesCleared = ref(0) 
 
-// --- ⏱️ SURVIVAL TIMER (5 Minutes = 300 Seconds) ---
+// --- ⏱️ SURVIVAL TIMER ---
 const timeLeft = ref(300)
 let survivalTimer = null
 
 const showStatsSheet = ref(false)
 
-// Mathematical Score based on (Waves * 1000) + Gold Left
+// --- 🏆 SUPABASE VARIABLES ---
+const playerName = ref('')
+const leaderboardData = ref([])
+
 const calculatedScore = computed(() => {
   return (wavesCleared.value * 1000) + gold.value
 })
@@ -298,7 +320,8 @@ let gameTickInterval = null
 function startGame(diff) {
   difficulty.value = typeof diff === 'string' ? diff : 'easy'
   lives.value = 3; maxLives.value = 3; gold.value = 100; wavesCleared.value = 0; viewAngle.value = 0; gameState.value = 'active'; commanderLevel.value = 1; commanderXp.value = 0; battleCombo.value = 0;
-  timeLeft.value = 300 // Reset timer to 5 mins
+  timeLeft.value = 300 
+  playerName.value = ''
 
   resetSide('center')
   setTimeout(() => { if (gameState.value === 'active') resetSide('left') }, 15000)
@@ -333,8 +356,55 @@ function quitToMenu() {
   clearInterval(survivalTimer)
 }
 
-function viewLeaderboard() {
+// --- 🏆 FETCH SCORES FROM SUPABASE ---
+async function viewLeaderboard() {
   gameState.value = 'leaderboard'
+  leaderboardData.value = []
+
+  try {
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('username, score')
+      .order('score', { ascending: false })
+      .limit(10)
+
+    if (error) {
+      toast.error('Could not pull leaderboard')
+      console.error(error)
+    } else {
+      leaderboardData.value = data
+    }
+  } catch (err) {
+    console.error('Leaderboard Fetch Error:', err)
+  }
+}
+
+// --- 🚀 PUSH SCORES TO SUPABASE ---
+async function submitScoreToSupabase() {
+  if (!playerName.value) return
+
+  try {
+    const { error } = await supabase
+      .from('leaderboard')
+      .insert([
+        { 
+          username: playerName.value, 
+          score: calculatedScore.value, 
+          difficulty: difficulty.value 
+        }
+      ])
+
+    if (error) {
+      toast.error('Could not submit score!')
+      console.error(error)
+    } else {
+      toast.info('Score Saved to Cloud!')
+    }
+  } catch (err) {
+    console.error('Submit Error:', err)
+  }
+
+  quitToMenu() // Go back to menu when done
 }
 
 function formatTime(seconds) {
@@ -347,7 +417,6 @@ function updateTimer() {
   if (timeLeft.value > 0) {
     timeLeft.value--
   } else {
-    // 🏆 Victory condition reached after 5 minutes!
     gameState.value = 'victory'
     clearInterval(gameTickInterval)
     clearInterval(survivalTimer)
@@ -367,9 +436,6 @@ function generateTaskForSide(k) {
                        : { type: 'grouping', total, perMonster: pMonster, question: `I have ${total} arrows. Each monster needs ${pMonster}. How many monsters?`, answer: mCount }
   side.monsters = Array.from({ length: mCount }, (_, i) => ({ id: Math.random().toString(36).substr(2, 9), progress: 0, idx: i, count: mCount }))
 }
-
-let lastGoldTick = Date.now()
-const isGeneratingTask = reactive({ left: false, center: false, right: false })
 
 function updateMonsters() {
   if (gameState.value !== 'active') return
@@ -423,7 +489,7 @@ async function handleSubmission(prep) {
 
   if (correct) {
     isFiring.value = true; 
-    wavesCleared.value++; // 🌊 Waves Cleared goes up here!
+    wavesCleared.value++; 
     battleCombo.value++; 
     commanderXp.value += 25 * battleCombo.value
     
@@ -467,7 +533,7 @@ function handleMonsterHit(k) {
   safeGenerateNextTask(k)
   
   if (lives.value <= 0) { 
-    gameState.value = 'gameOver'; 
+    gameState.value = 'gameOver'
     clearInterval(gameTickInterval) 
     clearInterval(survivalTimer)
   }
