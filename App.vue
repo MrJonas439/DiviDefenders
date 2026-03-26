@@ -66,10 +66,10 @@
       </div>
 
       <div class="absolute inset-y-0 left-0 flex items-center p-2 z-[60] pointer-events-none">
-        <RoundButton :start-icon="ChevronLeftIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)" />
+        <button :start-icon="ChevronLeftIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)" />
       </div>
       <div class="absolute inset-y-0 right-0 flex items-center p-2 z-[60] pointer-events-none">
-        <RoundButton :start-icon="ChevronRightIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)" />
+        <button :start-icon="ChevronRightIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)" />
       </div>
 
       <div v-if="activeSideKey === 'shop'" class="absolute inset-0 flex items-center justify-center p-4 z-40 pointer-events-none">
@@ -97,7 +97,7 @@
               </div>
               <div class="mt-3 flex items-center justify-between">
                 <span class="text-lg font-black text-yellow-400">{{ getPrice(item) }}G</span>
-                <Button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" label="BUY" @click="buyItem(item)" />
+                <button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" label="BUY" @click="buyItem(item)" />
               </div>
             </div>
           </div>
@@ -115,16 +115,16 @@
         <div v-if="gameState === 'start'" class="space-y-4">
           <p class="text-lg text-amber-100 italic">"Choose your path, Commander. The castle's fate rests on your tactical precision."</p>
           <div class="grid grid-cols-2 gap-3">
-            <Button label="EASY" class="bg-green-700 hover:bg-green-600 border-b border-green-900 text-sm py-3" @click="startGame('easy')" />
-            <Button label="MEDIUM" class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3" @click="startGame('medium')" />
-            <Button label="HARD" class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3" @click="startGame('hard')" />
-            <Button label="REMIX" class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3" @click="startGame('remix')" />
+            <button label="EASY" class="bg-green-700 hover:bg-green-600 border-b border-green-900 text-sm py-3" @click="startGame('easy')" />
+            <button label="MEDIUM" class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3" @click="startGame('medium')" />
+            <button label="HARD" class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3" @click="startGame('hard')" />
+            <button label="REMIX" class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3" @click="startGame('remix')" />
           </div>
         </div>
         <div v-if="gameState === 'gameOver'" class="space-y-4">
           <h2 class="text-3xl font-bold text-red-500 uppercase tracking-widest">The Wall Has Fallen</h2>
           <p class="text-xl text-amber-100">Glory Earned: {{ score }}</p>
-          <Button label="Return to Battle" class="w-full text-xl py-4 bg-blue-600" @click="startGame(difficulty)" />
+          <button label="Return to Battle" class="w-full text-xl py-4 bg-blue-600" @click="startGame(difficulty)" />
         </div>
       </div>
     </div>
