@@ -483,8 +483,13 @@ async function handleSubmission(prep) {
   const t = side.task; 
   if (!t || isGeneratingTask[sideKey]) return
 
-  // 🔓 CHEAT CODE BYPASS: Forces the answer to always be true!
-  const correct = true 
+  // 🧮 Multiply placed monsters by arrows per monster
+  const calculatedTotal = prep.monsterCount * prep.perMonster
+
+  // ✅ Did the user group them correctly?
+  const correct = t.type === 'sharing' 
+    ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
+    : (calculatedTotal === t.total && prep.monsterCount === t.answer)
 
   if (correct) {
     isFiring.value = true; 
@@ -499,14 +504,29 @@ async function handleSubmission(prep) {
       toast.info(`Level ${commanderLevel.value}!`);
     }
     
-    gold.value += 50
+    const quiverBonus = 1 + (activeUpgrades.quiver * 0.2)
+    gold.value += Math.floor(50 * quiverBonus * (1 + battleCombo.value * 0.1))
     
     try { 
-      if (world.value) await world.value.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
+      // 🚀 FORCED CONNECTION: If Vue ref is blank, find the 3D canvas manually!
+      const activeWorld = world.value || document.querySelector('canvas')?.__vueParentComponent?.exposed
+
+      if (activeWorld && typeof activeWorld.fireVolley === 'function') {
+        await activeWorld.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
+      } else {
+        // 🚨 Fallback safety if Three.js is lagging: Pause for a second to let it catch up
+        await new Promise(r => setTimeout(r, 1000))
+      }
+    } catch (e) {
+      console.error("Three.js Volley Error:", e)
     } finally { 
       isFiring.value = false; 
       safeGenerateNextTask(sideKey)
     }
+  } else { 
+    battleCombo.value = 0; 
+    if (world.value) world.value.fireDeflect(sideKey); 
+    toast.error('Deflected!') 
   }
 }
 
