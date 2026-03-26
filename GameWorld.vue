@@ -178,21 +178,35 @@ function createArrowMesh() {
 }
 
 async function fireVolley(sideKey, mCount, pMonster) {
+  if (!scene || !camera) return // 🛡️ Safety check!
+  
   camera.updateMatrixWorld()
   const start = new THREE.Vector3(0.6, 2.0, -1).applyMatrix4(camera.matrixWorld)
   const side = props.sides[sideKey]
   
+  if (!side) return // 🛡️ Safety check!
+
+  // Calculate a default "aiming point" down the path just in case we can't find the monsters
+  const rad = side.angle * Math.PI / 180
+  const fallbackTarget = new THREE.Vector3(0, 1, -50).applyAxisAngle(new THREE.Vector3(0, 1, 0), rad)
+
   for (let j = 0; j < mCount; j++) {
-    const m = monsterGroup.children.find(x => x.name === `${sideKey}-${side.monsters[j]?.id}`)
-    if (m) {
-      for (let i = 0; i < pMonster; i++) {
-        const a = createArrowMesh()
-        a.position.copy(start)
-        const target = m.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 2, 0))
-        a.lookAt(target)
-        scene.add(a)
-        activeArrows.push({ mesh: a, startPos: start.clone(), targetPos: target, startTime: Date.now(), duration: 800 })
-      }
+    // 🛡️ Safety: check if the monster array actually exists before trying to read it!
+    const sideMonster = side.monsters ? side.monsters[j] : null
+    const mName = sideMonster ? `${sideKey}-${sideMonster.id}` : null
+    const m = mName ? monsterGroup.getObjectByName(mName) : null
+
+    for (let i = 0; i < pMonster; i++) {
+      const a = createArrowMesh()
+      a.position.copy(start)
+      
+      // If we find the monster, aim at it! If we don't, aim at the fallback path!
+      const target = m ? m.position.clone() : fallbackTarget.clone()
+      target.add(new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 2, 0))
+      
+      a.lookAt(target)
+      scene.add(a)
+      activeArrows.push({ mesh: a, startPos: start.clone(), targetPos: target, startTime: Date.now(), duration: 800 })
     }
   }
   await new Promise(r => setTimeout(r, 1000))
