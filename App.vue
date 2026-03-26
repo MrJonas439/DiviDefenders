@@ -316,12 +316,22 @@ function buyItem(item) {
 
 let gameTickInterval = null
 
+// --- FIXED VARIABLES FOR MONSTER/GOLD LOOP ---
+let lastGoldTick = Date.now()
+const isGeneratingTask = reactive({ left: false, center: false, right: false })
+
 // --- 🎮 CORE GAME LOOPS ---
 function startGame(diff) {
   difficulty.value = typeof diff === 'string' ? diff : 'easy'
   lives.value = 3; maxLives.value = 3; gold.value = 100; wavesCleared.value = 0; viewAngle.value = 0; gameState.value = 'active'; commanderLevel.value = 1; commanderXp.value = 0; battleCombo.value = 0;
   timeLeft.value = 300 
   playerName.value = ''
+
+  // Fix: Reset tracking variables so game restarts cleanly after a game over!
+  lastGoldTick = Date.now()
+  isGeneratingTask.left = false
+  isGeneratingTask.center = false
+  isGeneratingTask.right = false
 
   resetSide('center')
   setTimeout(() => { if (gameState.value === 'active') resetSide('left') }, 15000)
