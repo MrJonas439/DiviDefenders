@@ -133,15 +133,24 @@
 
 <script setup>
 import { ref, computed, onUnmounted, reactive } from 'vue'
-import { HeartIcon, ChevronLeftIcon, ChevronRightIcon, CurrencyDollarIcon, WrenchIcon, ShieldCheckIcon, BanknotesIcon, BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon } from '@heroicons/vue/24/solid'
-import { Button, RoundButton, useToast } from 'elements'
+import {
+  HeartIcon, ChevronLeftIcon, ChevronRightIcon,
+  CurrencyDollarIcon, WrenchIcon, ShieldCheckIcon, BanknotesIcon,
+  BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon
+} from '@heroicons/vue/24/solid'
 import { Motion } from 'motion-v'
 import GameWorld from './GameWorld.vue'
 import PrepArea from './PrepArea.vue'
 import MathHUD from './MathHUD.vue'
 
-const toast = useToast()
+// Since we deleted useToast from 'elements', let's make a tiny fake toast to prevent crashes!
+const toast = {
+  info: (msg) => console.log('INFO:', msg),
+  error: (msg) => console.log('ERROR:', msg)
+}
+
 const gameState = ref('start')
+// ... (leave the rest of your script exactly as it was!)
 const difficulty = ref('easy')
 const lives = ref(3)
 const maxLives = ref(3)
