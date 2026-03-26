@@ -15,24 +15,57 @@ let monsterMaterial, arrowMaterial, activeArrows = []
 onMounted(() => { initThree(); animate(); window.addEventListener('resize', onResize) })
 
 function initThree() {
-  scene = new THREE.Scene(); scene.background = new THREE.Color(0x050a14); scene.fog = new THREE.Fog(0x050a14, 40, 150)
-  camera = new THREE.PerspectiveCamera(65, container.value.clientWidth / container.value.clientHeight, 0.1, 1000); camera.position.set(0, 2.5, 0); scene.add(camera)
-  renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(container.value.clientWidth, container.value.clientHeight); container.value.appendChild(renderer.domElement)
+  scene = new THREE.Scene(); 
+  scene.background = new THREE.Color(0x050a14); 
+  scene.fog = new THREE.Fog(0x050a14, 40, 150)
+  
+  // 👇 Added fallback width (800) and height (600) so it doesn't divide by zero!
+  const width = container.value?.clientWidth || 800;
+  const height = container.value?.clientHeight || 600;
+
+  camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000); 
+  camera.position.set(0, 2.5, 0); 
+  scene.add(camera)
+  
+  renderer = new THREE.WebGLRenderer({ antialias: true }); 
+  renderer.setSize(width, height); 
+  container.value.appendChild(renderer.domElement)
+  
   monsterMaterial = new THREE.MeshPhongMaterial({ color: 0x4ade80, emissive: 0x4ade80, emissiveIntensity: 0.4 })
   arrowMaterial = new THREE.MeshPhongMaterial({ color: 0xf59e0b })
-  scene.add(new THREE.AmbientLight(0x404060, 1.5)); const l = new THREE.DirectionalLight(0xffffff, 1.2); l.position.set(20, 100, 20); scene.add(l)
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshPhongMaterial({ color: 0x052e16 })); floor.rotation.x = -Math.PI / 2; scene.add(floor)
+  scene.add(new THREE.AmbientLight(0x404060, 1.5)); 
+  const l = new THREE.DirectionalLight(0xffffff, 1.2); 
+  l.position.set(20, 100, 20); 
+  scene.add(l)
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshPhongMaterial({ color: 0x052e16 })); 
+  floor.rotation.x = -Math.PI / 2; 
+  scene.add(floor)
   
   const angles = [-90, 0, 90, 180]
   angles.forEach(a => {
     const rad = a * Math.PI / 180
     if (a !== 180) {
-      const path = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), new THREE.MeshPhongMaterial({ color: 0xd2b48c })); path.rotation.x = -Math.PI/2; path.position.set(0, 0.01, -100).applyAxisAngle(new THREE.Vector3(0,1,0), rad); scene.add(path)
-      for (let i=0; i<50; i++) { const tree = createTree(); const dist = 20 + Math.random()*150; const x = (Math.random()-0.5)*80; if (Math.abs(x) > 10) { tree.position.set(x, 0, -dist).applyAxisAngle(new THREE.Vector3(0,1,0), rad); scene.add(tree) } }
+      const path = new THREE.Mesh(new THREE.PlaneGeometry(12, 200), new THREE.MeshPhongMaterial({ color: 0xd2b48c })); 
+      path.rotation.x = -Math.PI/2; 
+      path.position.set(0, 0.01, -100).applyAxisAngle(new THREE.Vector3(0,1,0), rad); 
+      scene.add(path)
+      for (let i=0; i<50; i++) { 
+        const tree = createTree(); 
+        const dist = 20 + Math.random()*150; 
+        const x = (Math.random()-0.5)*80; 
+        if (Math.abs(x) > 10) { 
+          tree.position.set(x, 0, -dist).applyAxisAngle(new THREE.Vector3(0,1,0), rad); 
+          scene.add(tree) 
+        } 
+      }
     }
   })
-  bowGroup = createBowModel(); bowGroup.position.set(0.6, -0.6, -1.0); camera.add(bowGroup)
-  monsterGroup = new THREE.Group(); scene.add(monsterGroup); clock = new THREE.Clock()
+  bowGroup = createBowModel(); 
+  bowGroup.position.set(0.6, -0.6, -1.0); 
+  camera.add(bowGroup)
+  monsterGroup = new THREE.Group(); 
+  scene.add(monsterGroup); 
+  clock = new THREE.Clock()
 }
 
 function createTree() {
