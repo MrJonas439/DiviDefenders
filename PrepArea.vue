@@ -140,15 +140,16 @@ const canFire = computed(() => {
 })
 
 function fireVolley() {
-  // 🛡️ Safety fallback: If there are no monsters, default to 0 to prevent crashes
   const firstMonsterArrows = monsters.value[0] ? monsters.value[0].arrows : 0
-  const totalTaskArrows = props.task ? props.task.total : 0
+  
+  // 🛡️ Safe Optional Chaining (?.) prevents the silent crash!
+  const totalTaskArrows = props.task?.total || 0 
 
   emit('submit', {
     monsterCount: monsters.value.length,
     perMonster: firstMonsterArrows,
     totalArrows: totalTaskArrows,
-    isConsistent: true // Vue likes this property for your App.vue checks!
+    isConsistent: true 
   })
 }
 </script>
