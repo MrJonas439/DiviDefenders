@@ -1,0 +1,273 @@
+<template>
+  <div class="h-full w-full bg-neutral-900 text-white overflow-hidden relative flex flex-col font-sans select-none touch-none">
+    <!-- Game World Container with Shake Effect -->
+    <Motion
+      class="flex-1 relative overflow-hidden"
+      :animate="damageFlash ? { x: [-10, 10, -10, 10, 0] } : { x: 0 }"
+      :transition="{ duration: 0.3 }"
+    >
+      <GameWorld
+        ref="world"
+        :viewAngle="viewAngle"
+        :gameState="gameState"
+        :sides="sides"
+        :difficulty="difficulty"
+        @monster-hit="handleMonsterHit"
+      />
+
+      <!-- Damage Overlay (Screen Flash) -->
+      <Motion
+        v-if="damageFlash"
+        initial="{ opacity: 0 }"
+        animate="{ opacity: [0, 0.6, 0] }"
+        :transition="{ duration: 0.3 }"
+        class="absolute inset-0 bg-red-600/40 pointer-events-none z-50"
+      />
+
+      <!-- HUD: Stats -->
+      <div class="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-50">
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 shadow-xl">
+            <HeartIcon class="w-5 h-5 text-red-500 fill-current" />
+            <span class="text-lg font-black">{{ lives }}/{{ maxLives }}</span>
+          </div>
+          <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 shadow-xl">
+            <CurrencyDollarIcon class="w-5 h-5 text-yellow-400" />
+            <span class="text-lg font-black">{{ gold }}</span>
+          </div>
+          <div v-if="battleCombo > 1" class="flex items-center gap-2 bg-orange-600/80 backdrop-blur-md p-2 rounded-lg border border-orange-400/50 shadow-xl animate-bounce">
+            <BoltIcon class="w-5 h-5 text-white" />
+            <span class="text-lg font-black text-white">x{{ battleCombo }} COMBO</span>
+          </div>
+          <div class="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md border border-white/10 mt-1">
+            <SparklesIcon class="w-3 h-3 text-yellow-500" />
+            <span class="text-[10px] font-bold text-amber-200 uppercase tracking-tighter">Passive: +{{ currentPassiveIncome }} Gold</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-end gap-1">
+          <div class="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 text-right shadow-xl">
+            <div class="text-[10px] uppercase opacity-70 tracking-widest font-bold">Defense Side</div>
+            <div class="text-base font-black text-amber-400">{{ currentSideName }}</div>
+          </div>
+          <div class="bg-blue-900/60 backdrop-blur-md p-2 rounded-lg border border-blue-400/30 text-right shadow-xl min-w-[120px]">
+            <div class="text-[8px] uppercase font-black text-blue-200 tracking-[0.2em]">Rank: Commander Lvl {{ commanderLevel }}</div>
+            <div class="w-full bg-blue-950 h-1.5 rounded-full mt-1 overflow-hidden border border-blue-800">
+              <div class="bg-blue-400 h-full transition-all duration-500" :style="{ width: (commanderXp / xpToNextLevel) * 100 + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="absolute inset-0 z-20 touch-none" @pointerdown="onPointerDown" @pointerup="onPointerUp"></div>
+
+      <div v-if="gameState === 'active' && activeSideWave.task" class="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs px-2 z-40 pointer-events-none">
+        <MathHUD :task="activeSideWave.task" />
+      </div>
+
+      <div class="absolute inset-y-0 left-0 flex items-center p-2 z-[60] pointer-events-none">
+        <RoundButton :start-icon="ChevronLeftIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)" />
+      </div>
+      <div class="absolute inset-y-0 right-0 flex items-center p-2 z-[60] pointer-events-none">
+        <RoundButton :start-icon="ChevronRightIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)" />
+      </div>
+
+      <div v-if="activeSideKey === 'shop'" class="absolute inset-0 flex items-center justify-center p-4 z-40 pointer-events-none">
+        <div class="bg-black/80 backdrop-blur-xl border-2 border-amber-600/50 rounded-2xl w-full max-w-2xl h-[70%] overflow-hidden flex flex-col pointer-events-auto shadow-2xl">
+          <div class="p-4 border-b border-amber-600/30 flex justify-between items-center bg-amber-900/20">
+            <div>
+              <h2 class="text-2xl font-black text-amber-500 uppercase tracking-widest">Castle Merchant</h2>
+              <p class="text-[10px] text-amber-200/60 font-bold uppercase tracking-widest">Invest gold to survive the siege</p>
+            </div>
+            <div class="flex items-center gap-2 bg-amber-950/80 px-4 py-2 rounded-xl border border-amber-600/40">
+              <CurrencyDollarIcon class="w-6 h-6 text-yellow-400" />
+              <span class="text-2xl font-black text-white">{{ gold }}</span>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div v-for="item in shopItems" :key="item.id" class="group relative bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-3 flex flex-col justify-between transition-all">
+              <div class="flex gap-3">
+                <div class="w-12 h-12 rounded-lg bg-amber-900/30 flex items-center justify-center border border-amber-600/20">
+                  <component :is="getShopIcon(item.icon)" class="w-7 h-7 text-amber-500" />
+                </div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-base text-amber-100">{{ item.name }}</h3>
+                  <p class="text-[10px] text-amber-100/60 leading-tight">{{ item.description }}</p>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center justify-between">
+                <span class="text-lg font-black text-yellow-400">{{ getPrice(item) }}G</span>
+                <Button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" label="BUY" @click="buyItem(item)" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Motion>
+
+    <div v-if="gameState === 'active'" class="shrink-0 z-50">
+      <PrepArea :task="activeSideWave.task" @submit="handleSubmission" />
+    </div>
+
+    <div v-if="gameState !== 'active'" class="absolute inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center">
+      <div class="max-w-sm space-y-6">
+        <h1 class="text-4xl font-black tracking-tighter text-yellow-500">LEGEND OF DIVISION</h1>
+        <div v-if="gameState === 'start'" class="space-y-4">
+          <p class="text-lg text-amber-100 italic">"Choose your path, Commander. The castle's fate rests on your tactical precision."</p>
+          <div class="grid grid-cols-2 gap-3">
+            <Button label="EASY" class="bg-green-700 hover:bg-green-600 border-b border-green-900 text-sm py-3" @click="startGame('easy')" />
+            <Button label="MEDIUM" class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3" @click="startGame('medium')" />
+            <Button label="HARD" class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3" @click="startGame('hard')" />
+            <Button label="REMIX" class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3" @click="startGame('remix')" />
+          </div>
+        </div>
+        <div v-if="gameState === 'gameOver'" class="space-y-4">
+          <h2 class="text-3xl font-bold text-red-500 uppercase tracking-widest">The Wall Has Fallen</h2>
+          <p class="text-xl text-amber-100">Glory Earned: {{ score }}</p>
+          <Button label="Return to Battle" class="w-full text-xl py-4 bg-blue-600" @click="startGame(difficulty)" />
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onUnmounted, reactive } from 'vue'
+import {
+  HeartIcon, ChevronLeftIcon, ChevronRightIcon,
+  CurrencyDollarIcon, WrenchIcon, ShieldCheckIcon, BanknotesIcon,
+  BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon
+} from '@heroicons/vue/16/solid'
+import { Button, RoundButton, useToast } from 'elements'
+import { Motion } from 'motion-v'
+import GameWorld from './GameWorld.vue'
+import PrepArea from './PrepArea.vue'
+import MathHUD from './MathHUD.vue'
+
+const toast = useToast()
+const gameState = ref('start')
+const difficulty = ref('easy')
+const lives = ref(3)
+const maxLives = ref(3)
+const gold = ref(100)
+const score = ref(0)
+const viewAngle = ref(0)
+const damageFlash = ref(false)
+const commanderLevel = ref(1)
+const commanderXp = ref(0)
+const xpToNextLevel = computed(() => commanderLevel.value * 500)
+const battleCombo = ref(0)
+const maxCombo = ref(0)
+const currentPassiveIncome = computed(() => {
+  const base = activeUpgrades.alchemist ? 2 : 1
+  return base + Math.floor(commanderLevel.value / 3)
+})
+
+const shopItems = reactive([
+  { id: 'masonry', name: 'Masonry Tools', price: 150, description: 'Repair the wall: +1 Life', icon: 'WrenchIcon' },
+  { id: 'fortify', name: 'Steel Grates', price: 400, description: 'Stronger wall: +1 Max Life', icon: 'ShieldCheckIcon' },
+  { id: 'quiver', name: 'Golden Quiver', price: 300, description: '+20% Gold per wave', icon: 'BanknotesIcon' },
+  { id: 'ice', name: 'Frost Tincture', price: 450, description: 'Ice arrows: 20% monster slow', icon: 'BoltIcon' },
+  { id: 'phoenix', name: 'Phoenix Feather', price: 200, description: 'Clear active side\'s wave', icon: 'FireIcon' },
+  { id: 'contract', name: 'Guild Contract', price: 350, description: '20% shop discount', icon: 'DocumentTextIcon' },
+  { id: 'alchemist', name: 'Alchemist\'s Coin', price: 100, description: '+1 Gold periodically', icon: 'CurrencyDollarIcon' },
+  { id: 'dragon', name: 'Dragon\'s Breath', price: 600, description: 'Clear all active waves', icon: 'SparklesIcon' }
+])
+
+const activeUpgrades = reactive({ quiver: 0, ice: 0, contract: 0, alchemist: 0 })
+const sides = reactive({
+  left: { angle: 90, task: null, monsters: [], status: 'locked', monsterType: 'slime' },
+  center: { angle: 0, task: null, monsters: [], status: 'locked', monsterType: 'slime' },
+  right: { angle: 270, task: null, monsters: [], status: 'locked', monsterType: 'slime' },
+  shop: { angle: 180, status: 'active' }
+})
+
+const activeSideKey = computed(() => {
+  const normalized = ((viewAngle.value % 360) + 360) % 360
+  if (normalized === 90) return 'left'
+  if (normalized === 270) return 'right'
+  if (normalized === 180) return 'shop'
+  return 'center'
+})
+const activeSideWave = computed(() => sides[activeSideKey.value] || { task: null })
+const isFiring = ref(false)
+const world = ref(null)
+let startX = 0
+
+function onPointerDown(e) { if (!isFiring.value) startX = e.clientX }
+function onPointerUp(e) { if (!isFiring.value && Math.abs(e.clientX - startX) > 50) changeView(e.clientX > startX ? -1 : 1) }
+function changeView(dir) { if (!isFiring.value) viewAngle.value -= (dir * 90) }
+const currentSideName = computed(() => ({ left: 'Left Tower', right: 'Right Tower', center: 'Center Gate', shop: 'The Shop' }[activeSideKey.value]))
+function getShopIcon(name) { return { WrenchIcon, ShieldCheckIcon, BanknotesIcon, BoltIcon, FireIcon, DocumentTextIcon, CurrencyDollarIcon, SparklesIcon }[name] || WrenchIcon }
+function getPrice(item) { return Math.floor(item.price * (activeUpgrades.contract ? 0.8 : 1)) }
+
+function buyItem(item) {
+  const finalPrice = getPrice(item)
+  if (gold.value < finalPrice) return
+  gold.value -= finalPrice
+  if (item.id === 'masonry') lives.value = Math.min(maxLives.value, lives.value + 1)
+  else if (item.id === 'fortify') { maxLives.value++; lives.value++ }
+  else if (item.id === 'phoenix' && ['left', 'center', 'right'].includes(activeSideKey.value)) { sides[activeSideKey.value].monsters = []; setTimeout(() => generateTaskForSide(activeSideKey.value), 3000) }
+  else if (item.id === 'dragon') ['left', 'center', 'right'].forEach(k => { sides[k].monsters = []; setTimeout(() => generateTaskForSide(k), 3000) })
+  else activeUpgrades[item.id]++
+  toast.info(`Purchased ${item.name}!`)
+}
+
+let gameTickInterval = null
+function startGame(diff) {
+  difficulty.value = typeof diff === 'string' ? diff : 'easy'
+  lives.value = 3; maxLives.value = 3; gold.value = 100; score.value = 0; viewAngle.value = 0; gameState.value = 'active'; commanderLevel.value = 1; commanderXp.value = 0; battleCombo.value = 0;
+  resetSide('center')
+  setTimeout(() => { if (gameState.value === 'active') resetSide('left') }, 15000)
+  setTimeout(() => { if (gameState.value === 'active') resetSide('right') }, 30000)
+  if (gameTickInterval) clearInterval(gameTickInterval)
+  gameTickInterval = setInterval(updateMonsters, 100)
+}
+
+function resetSide(k) { sides[k].status = 'active'; sides[k].monsters = []; generateTaskForSide(k) }
+function generateTaskForSide(k) {
+  const side = sides[k]; const sets = { easy: [2, 5, 10], medium: [3, 4], hard: [6, 7, 8, 9] }
+  let diff = difficulty.value === 'remix' ? (Math.random() < 0.4 ? 'easy' : Math.random() < 0.75 ? 'medium' : 'hard') : difficulty.value
+  side.monsterType = { easy: 'slime', medium: 'skeleton', hard: 'golem' }[diff]
+  const divisors = sets[diff]; const isSharing = Math.random() > 0.5
+  let mCount, pMonster; if (isSharing) { mCount = divisors[Math.floor(Math.random() * divisors.length)]; pMonster = Math.floor(Math.random() * 5) + 2 }
+  else { pMonster = divisors[Math.floor(Math.random() * divisors.length)]; mCount = Math.floor(Math.random() * 5) + 2 }
+  const total = mCount * pMonster
+  side.task = isSharing ? { type: 'sharing', total, count: mCount, question: `I need ${total} arrows for ${mCount} monsters. How many per monster?`, answer: pMonster }
+                         : { type: 'grouping', total, perMonster: pMonster, question: `I have ${total} arrows. Each monster needs ${pMonster}. How many monsters?`, answer: mCount }
+  side.monsters = Array.from({ length: mCount }, (_, i) => ({ id: Math.random().toString(36).substr(2, 9), progress: 0, idx: i, count: mCount }))
+}
+
+let lastGoldTick = Date.now()
+function updateMonsters() {
+  if (gameState.value !== 'active') return
+  const now = Date.now(); const tick = activeUpgrades.alchemist ? 3000 : 5000
+  if (now - lastGoldTick > tick) { gold.value += currentPassiveIncome.value; lastGoldTick = now }
+  const dt = 0.1 / 120 * (activeUpgrades.ice ? 0.8 : 1)
+  Object.keys(sides).forEach(k => {
+    if (k === 'shop' || sides[k].status !== 'active') return
+    let failed = false; sides[k].monsters.forEach(m => { m.progress += dt; if (m.progress >= 1.0) failed = true })
+    if (failed) handleMonsterHit(k)
+  })
+}
+
+async function handleSubmission(prep) {
+  if (isFiring.value) return
+  const side = sides[activeSideKey.value]; const t = side.task; if (!t) return
+  const correct = (t.type === 'sharing' ? (prep.monsterCount === t.count && prep.perMonster === t.answer) : (prep.totalArrows === t.total && prep.monsterCount === t.answer)) && prep.isConsistent
+  if (correct) {
+    isFiring.value = true; battleCombo.value++; score.value += 10 * battleCombo.value; commanderXp.value += 25 * battleCombo.value
+    if (commanderXp.value >= xpToNextLevel.value) { commanderXp.value -= xpToNextLevel.value; commanderLevel.value++; gold.value += 200; toast.info(`Level ${commanderLevel.value}!`) }
+    gold.value += Math.floor(50 * (activeUpgrades.quiver ? 1.2 : 1) * (1 + battleCombo.value * 0.1))
+    try { if (world.value) await world.value.fireVolley(activeSideKey.value, prep.monsterCount, prep.perMonster) } finally { side.monsters = []; side.task = null; isFiring.value = false; setTimeout(() => generateTaskForSide(activeSideKey.value), 3000) }
+  } else { battleCombo.value = 0; if (world.value) world.value.fireDeflect(activeSideKey.value); toast.error('Deflected!') }
+}
+
+function handleMonsterHit(k) {
+  if (gameState.value !== 'active') return
+  lives.value = Math.max(0, lives.value - 1); damageFlash.value = true; setTimeout(() => damageFlash.value = false, 300)
+  sides[k].monsters = []; setTimeout(() => generateTaskForSide(k), 2000)
+  if (lives.value <= 0) { gameState.value = 'gameOver'; clearInterval(gameTickInterval) }
+}
+onUnmounted(() => clearInterval(gameTickInterval))
+</script>
