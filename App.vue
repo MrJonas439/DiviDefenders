@@ -167,7 +167,7 @@ const xpToNextLevel = computed(() => commanderLevel.value * 500)
 const battleCombo = ref(0)
 const maxCombo = ref(0)
 const currentPassiveIncome = computed(() => {
-  const base = activeUpgrades.alchemist ? 2 : 1
+  const base = 1 + (activeUpgrades.alchemist || 0) // Adds +1 gold per coin!
   return base + Math.floor(commanderLevel.value / 3)
 })
 
@@ -207,7 +207,11 @@ function onPointerUp(e) { if (!isFiring.value && Math.abs(e.clientX - startX) > 
 function changeView(dir) { if (!isFiring.value) viewAngle.value -= (dir * 90) }
 const currentSideName = computed(() => ({ left: 'Left Tower', right: 'Right Tower', center: 'Center Gate', shop: 'The Shop' }[activeSideKey.value]))
 function getShopIcon(name) { return { WrenchIcon, ShieldCheckIcon, BanknotesIcon, BoltIcon, FireIcon, DocumentTextIcon, CurrencyDollarIcon, SparklesIcon }[name] || WrenchIcon }
-function getPrice(item) { return Math.floor(item.price * (activeUpgrades.contract ? 0.8 : 1)) }
+function getPrice(item) {
+  // Each contract adds a 20% discount, maxing out at an 80% discount (so items are never free!)
+  const discountFactor = Math.max(0.2, 1 - (activeUpgrades.contract * 0.2))
+  return Math.floor(item.price * discountFactor)
+}
 
 function buyItem(item) {
   const finalPrice = getPrice(item)
@@ -255,8 +259,9 @@ function updateMonsters() {
   const tick = activeUpgrades.alchemist ? 3000 : 5000
   if (now - lastGoldTick > tick) { gold.value += currentPassiveIncome.value; lastGoldTick = now }
   
-  // 1200 ticks = 2 minutes (at 100ms per tick)
-const dt = (1 / 1200) * (activeUpgrades.ice ? 0.8 : 1)
+  // Each ice upgrade slows them by 20%, maxing out at a 60% slow!
+  const slowFactor = Math.max(0.4, 1 - (activeUpgrades.ice * 0.2))
+  const dt = (1 / 1200) * slowFactor 
   
   Object.keys(sides).forEach(k => {
     if (k === 'shop' || sides[k].status !== 'active' || isGeneratingTask[k]) return
@@ -312,7 +317,8 @@ async function handleSubmission(prep) {
       toast.info(`Level ${commanderLevel.value}!`) 
     }
     
-    gold.value += Math.floor(50 * (activeUpgrades.quiver ? 1.2 : 1) * (1 + battleCombo.value * 0.1))
+  const quiverBonus = 1 + (activeUpgrades.quiver * 0.2) // Each quiver adds 20% to the base gold!
+gold.value += Math.floor(50 * quiverBonus * (1 + battleCombo.value * 0.1))
     
     try { 
       if (world.value) await world.value.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
