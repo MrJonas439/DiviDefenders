@@ -66,11 +66,16 @@
       </div>
 
       <div class="absolute inset-y-0 left-0 flex items-center p-2 z-[60] pointer-events-none">
-        <button :start-icon="ChevronLeftIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)" />
-      </div>
-      <div class="absolute inset-y-0 right-0 flex items-center p-2 z-[60] pointer-events-none">
-        <button :start-icon="ChevronRightIcon" class="pointer-events-auto bg-black/60 text-white w-12 h-12 border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)" />
-      </div>
+  <button class="pointer-events-auto bg-black/60 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(-1)">
+    <ChevronLeftIcon class="w-6 h-6" />
+  </button>
+</div>
+
+<div class="absolute inset-y-0 right-0 flex items-center p-2 z-[60] pointer-events-none">
+  <button class="pointer-events-auto bg-black/60 text-white w-12 h-12 rounded-full flex items-center justify-center border border-white/30 backdrop-blur-md shadow-2xl hover:scale-110 active:scale-95 transition-transform" @click="changeView(1)">
+    <ChevronRightIcon class="w-6 h-6" />
+  </button>
+</div>
 
       <div v-if="activeSideKey === 'shop'" class="absolute inset-0 flex items-center justify-center p-4 z-40 pointer-events-none">
         <div class="bg-black/80 backdrop-blur-xl border-2 border-amber-600/50 rounded-2xl w-full max-w-2xl h-[70%] overflow-hidden flex flex-col pointer-events-auto shadow-2xl">
@@ -97,7 +102,7 @@
               </div>
               <div class="mt-3 flex items-center justify-between">
                 <span class="text-lg font-black text-yellow-400">{{ getPrice(item) }}G</span>
-                <button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" label="BUY" @click="buyItem(item)" />
+               <button :disabled="gold < getPrice(item)" class="text-xs py-1.5 px-4 font-black rounded-lg transition-all" :class="gold >= getPrice(item) ? 'bg-amber-600 text-white hover:bg-amber-500' : 'bg-white/5 text-white/20'" @click="buyItem(item)">BUY</button>
               </div>
             </div>
           </div>
@@ -115,16 +120,16 @@
         <div v-if="gameState === 'start'" class="space-y-4">
           <p class="text-lg text-amber-100 italic">"Choose your path, Commander. The castle's fate rests on your tactical precision."</p>
           <div class="grid grid-cols-2 gap-3">
-            <button label="EASY" class="bg-green-700 hover:bg-green-600 border-b border-green-900 text-sm py-3" @click="startGame('easy')" />
-            <button label="MEDIUM" class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3" @click="startGame('medium')" />
-            <button label="HARD" class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3" @click="startGame('hard')" />
-            <button label="REMIX" class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3" @click="startGame('remix')" />
+            <button class="bg-green-700 hover:bg-green-600 border-b border-green-900 text-sm py-3 rounded-lg font-bold" @click="startGame('easy')">EASY</button>
+<button class="bg-blue-700 hover:bg-blue-600 border-b border-blue-900 text-sm py-3 rounded-lg font-bold" @click="startGame('medium')">MEDIUM</button>
+<button class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3 rounded-lg font-bold" @click="startGame('hard')">HARD</button>
+<button class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3 rounded-lg font-bold" @click="startGame('remix')">REMIX</button>
           </div>
         </div>
         <div v-if="gameState === 'gameOver'" class="space-y-4">
           <h2 class="text-3xl font-bold text-red-500 uppercase tracking-widest">The Wall Has Fallen</h2>
           <p class="text-xl text-amber-100">Glory Earned: {{ score }}</p>
-          <button label="Return to Battle" class="w-full text-xl py-4 bg-blue-600" @click="startGame(difficulty)" />
+        <button class="w-full text-xl py-4 bg-blue-600 rounded-lg font-bold" @click="startGame(difficulty)">Return to Battle</button>
         </div>
       </div>
     </div>
