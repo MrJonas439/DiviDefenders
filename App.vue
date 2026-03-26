@@ -48,10 +48,38 @@
             <div class="text-[10px] uppercase opacity-70 tracking-widest font-bold">Defense Side</div>
             <div class="text-base font-black text-amber-400">{{ currentSideName }}</div>
           </div>
-          <div class="bg-blue-900/60 backdrop-blur-md p-2 rounded-lg border border-blue-400/30 text-right shadow-xl min-w-[120px]">
+          
+          <div class="bg-blue-900/60 backdrop-blur-md p-2 rounded-lg border border-blue-400/30 text-right shadow-xl min-w-[140px] relative pointer-events-auto">
             <div class="text-[8px] uppercase font-black text-blue-200 tracking-[0.2em]">Rank: Commander Lvl {{ commanderLevel }}</div>
             <div class="w-full bg-blue-950 h-1.5 rounded-full mt-1 overflow-hidden border border-blue-800">
               <div class="bg-blue-400 h-full transition-all duration-500" :style="{ width: (commanderXp / xpToNextLevel) * 100 + '%' }"></div>
+            </div>
+
+            <button @click="showStatsSheet = !showStatsSheet" class="mt-1.5 w-full text-[9px] font-bold tracking-wider text-center bg-blue-500/30 hover:bg-blue-500/60 py-1 rounded border border-blue-400/30 text-white transition-colors">
+              {{ showStatsSheet ? '✕ CLOSE STATS' : '📋 VIEW PERKS' }}
+            </button>
+
+            <div v-if="showStatsSheet" class="absolute top-full right-0 mt-2 w-56 p-3 bg-black/90 backdrop-blur-md rounded-xl border-2 border-blue-500/50 shadow-2xl z-[80] text-left flex flex-col gap-2">
+              <div class="text-xs font-black tracking-widest text-blue-300 uppercase border-b border-blue-500/30 pb-1">Army Statistics</div>
+              
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-white/70">Passive Gold:</span>
+                <span class="text-yellow-400 font-bold">+{{ currentPassiveIncome }}/Tick</span>
+              </div>
+
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-white/70">Wall HP Buff:</span>
+                <span class="text-red-400 font-bold">+{{ Math.floor(commanderLevel / 5) }} HP</span>
+              </div>
+
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-white/70">Archer Proficiency:</span>
+                <span class="text-green-400 font-bold">Lvl {{ commanderLevel }}</span>
+              </div>
+              
+              <div class="text-[9px] text-white/40 italic text-center mt-1 border-t border-white/10 pt-1">
+                Unlock permanent HP every 5 levels!
+              </div>
             </div>
           </div>
         </div>
@@ -155,19 +183,27 @@ const toast = {
 
 const gameState = ref('start')
 const difficulty = ref('easy')
-const lives = ref(3)
-const maxLives = ref(3)
-const gold = ref(100)
 const score = ref(0)
 const viewAngle = ref(0)
 const damageFlash = ref(false)
+const isFiring = ref(false)
+const world = ref(null)
+let startX = 0
+
+// --- 🎖️ STATS & LEVEL PROGRESSION ---
+const lives = ref(3)
+const maxLives = ref(3)
+const gold = ref(100)
 const commanderLevel = ref(1)
 const commanderXp = ref(0)
 const xpToNextLevel = computed(() => commanderLevel.value * 500)
 const battleCombo = ref(0)
 const maxCombo = ref(0)
+
+const showStatsSheet = ref(false) // Toggle for panel
+
 const currentPassiveIncome = computed(() => {
-  const base = 1 + (activeUpgrades.alchemist || 0) // Adds +1 gold per coin!
+  const base = 1 + (activeUpgrades.alchemist || 0) + commanderLevel.value
   return base + Math.floor(commanderLevel.value / 3)
 })
 
@@ -198,17 +234,14 @@ const activeSideKey = computed(() => {
   return 'center'
 })
 const activeSideWave = computed(() => sides[activeSideKey.value] || { task: null })
-const isFiring = ref(false)
-const world = ref(null)
-let startX = 0
 
 function onPointerDown(e) { if (!isFiring.value) startX = e.clientX }
 function onPointerUp(e) { if (!isFiring.value && Math.abs(e.clientX - startX) > 50) changeView(e.clientX > startX ? -1 : 1) }
 function changeView(dir) { if (!isFiring.value) viewAngle.value -= (dir * 90) }
 const currentSideName = computed(() => ({ left: 'Left Tower', right: 'Right Tower', center: 'Center Gate', shop: 'The Shop' }[activeSideKey.value]))
 function getShopIcon(name) { return { WrenchIcon, ShieldCheckIcon, BanknotesIcon, BoltIcon, FireIcon, DocumentTextIcon, CurrencyDollarIcon, SparklesIcon }[name] || WrenchIcon }
+
 function getPrice(item) {
-  // Each contract adds a 20% discount, maxing out at an 80% discount (so items are never free!)
   const discountFactor = Math.max(0.2, 1 - (activeUpgrades.contract * 0.2))
   return Math.floor(item.price * discountFactor)
 }
@@ -259,7 +292,6 @@ function updateMonsters() {
   const tick = activeUpgrades.alchemist ? 3000 : 5000
   if (now - lastGoldTick > tick) { gold.value += currentPassiveIncome.value; lastGoldTick = now }
   
-  // Each ice upgrade slows them by 20%, maxing out at a 60% slow!
   const slowFactor = Math.max(0.4, 1 - (activeUpgrades.ice * 0.2))
   const dt = (1 / 1200) * slowFactor 
   
@@ -314,11 +346,18 @@ async function handleSubmission(prep) {
       commanderXp.value -= xpToNextLevel.value; 
       commanderLevel.value++; 
       gold.value += 200; 
-      toast.info(`Level ${commanderLevel.value}!`) 
+      
+      if (commanderLevel.value % 5 === 0) {
+        maxLives.value++;
+        lives.value++;
+        toast.info(`Level ${commanderLevel.value}! Walls Fortified!`);
+      } else {
+        toast.info(`Level ${commanderLevel.value}!`);
+      }
     }
     
-  const quiverBonus = 1 + (activeUpgrades.quiver * 0.2) // Each quiver adds 20% to the base gold!
-gold.value += Math.floor(50 * quiverBonus * (1 + battleCombo.value * 0.1))
+    const quiverBonus = 1 + (activeUpgrades.quiver * 0.2)
+    gold.value += Math.floor(50 * quiverBonus * (1 + battleCombo.value * 0.1))
     
     try { 
       if (world.value) await world.value.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
