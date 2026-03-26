@@ -255,7 +255,8 @@ function updateMonsters() {
   const tick = activeUpgrades.alchemist ? 3000 : 5000
   if (now - lastGoldTick > tick) { gold.value += currentPassiveIncome.value; lastGoldTick = now }
   
-  const dt = 0.005 * (activeUpgrades.ice ? 0.8 : 1)
+  // 1200 ticks = 2 minutes (at 100ms per tick)
+const dt = (1 / 1200) * (activeUpgrades.ice ? 0.8 : 1)
   
   Object.keys(sides).forEach(k => {
     if (k === 'shop' || sides[k].status !== 'active' || isGeneratingTask[k]) return
