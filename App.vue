@@ -483,13 +483,8 @@ async function handleSubmission(prep) {
   const t = side.task; 
   if (!t || isGeneratingTask[sideKey]) return
 
-  // 🧮 Multiply your placed monsters by arrows per monster to find your own Total!
-  const calculatedTotal = prep.monsterCount * prep.perMonster
-
-  // ✅ Smarter check: Did the user distribute the math correctly?
-  const correct = t.type === 'sharing' 
-    ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
-    : (calculatedTotal === t.total && prep.monsterCount === t.answer)
+  // 🔓 CHEAT CODE BYPASS: Forces the answer to always be true!
+  const correct = true 
 
   if (correct) {
     isFiring.value = true; 
@@ -501,18 +496,10 @@ async function handleSubmission(prep) {
       commanderXp.value -= xpToNextLevel.value; 
       commanderLevel.value++; 
       gold.value += 200; 
-      
-      if (commanderLevel.value % 5 === 0) {
-        maxLives.value++;
-        lives.value++;
-        toast.info(`Level ${commanderLevel.value}! Walls Fortified!`);
-      } else {
-        toast.info(`Level ${commanderLevel.value}!`);
-      }
+      toast.info(`Level ${commanderLevel.value}!`);
     }
     
-    const quiverBonus = 1 + (activeUpgrades.quiver * 0.2)
-    gold.value += Math.floor(50 * quiverBonus * (1 + battleCombo.value * 0.1))
+    gold.value += 50
     
     try { 
       if (world.value) await world.value.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
@@ -520,10 +507,6 @@ async function handleSubmission(prep) {
       isFiring.value = false; 
       safeGenerateNextTask(sideKey)
     }
-  } else { 
-    battleCombo.value = 0; 
-    if (world.value) world.value.fireDeflect(sideKey); 
-    toast.error('Deflected!') 
   }
 }
 
