@@ -9,11 +9,18 @@
 
       <div 
         v-for="(monster, mIdx) in monsters" 
-        :key="mIdx" 
+        :key="monster.id" 
         class="relative flex flex-col items-center justify-start p-1 w-20 h-[100px] rounded-lg border bg-black/40 cursor-pointer transition-all hover:border-amber-500/50"
         :class="activeMonsterIdx === mIdx ? 'border-amber-500 shadow-lg shadow-amber-500/20' : 'border-white/10'"
         @click="assignArrowToMonster(mIdx)"
       >
+        <button 
+          class="absolute -top-1 -left-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center z-10 shadow-md font-black text-xs border border-white/20"
+          @click.stop="removeMonster(mIdx)"
+        >
+          -
+        </button>
+
         <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center font-black text-xs text-white mb-1 shadow-md relative">
           <span class="absolute -top-1 -right-1 bg-black text-[10px] px-1 rounded">M{{ mIdx + 1 }}</span>
           👾
@@ -90,11 +97,25 @@ function resetPrep() {
 
 function addMonster() {
   if (monsters.value.length >= 10) return
-  monsters.value.push({ id: Date.now(), arrows: 0 })
+  monsters.value.push({ id: Date.now() + Math.random(), arrows: 0 })
   if (monsters.value.length === 1) activeMonsterIdx.value = 0
 }
 
-// 🎯 NEW: Clicking a monster automatically transfers an arrow from the supply
+// 🎯 Removes the monster and safely refunds their arrows to the pool
+function removeMonster(monsterIdx) {
+  const arrowsToRefund = monsters.value[monsterIdx].arrows
+  unassignedArrows.value += arrowsToRefund
+  
+  monsters.value.splice(monsterIdx, 1)
+
+  // Adjust active index so it doesn't break
+  if (monsters.value.length === 0) {
+    activeMonsterIdx.value = 0
+  } else if (activeMonsterIdx.value >= monsters.value.length) {
+    activeMonsterIdx.value = monsters.value.length - 1
+  }
+}
+
 function assignArrowToMonster(monsterIdx) {
   if (unassignedArrows.value <= 0) return
   
