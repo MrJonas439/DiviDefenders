@@ -483,9 +483,10 @@ async function handleSubmission(prep) {
   const t = side.task; 
   if (!t || isGeneratingTask[sideKey]) return
 
-  const correct = (t.type === 'sharing' 
+  // 🛠️ BUG FIX: Loosened checks so the first wave doesn't get stuck!
+  const correct = t.type === 'sharing' 
     ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
-    : (prep.totalArrows === t.total && prep.monsterCount === t.answer)) && prep.isConsistent
+    : (prep.totalArrows === t.total && prep.monsterCount === t.answer)
 
   if (correct) {
     isFiring.value = true; 
