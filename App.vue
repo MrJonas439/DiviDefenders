@@ -6,15 +6,14 @@
       :animate="damageFlash ? { x: [-10, 10, -10, 10, 0] } : { x: 0 }"
       :transition="{ duration: 0.3 }"
     >
-     <GameWorld
-  ref="world"
-  :viewAngle="viewAngle"
-  :gameState="gameState"
-  :sides="sides"
-  :difficulty="difficulty"
-  @monster-hit="handleMonsterHit"
-  @world-ready="isWorldReady = true" 
-/>
+      <GameWorld
+        ref="world"
+        :viewAngle="viewAngle"
+        :gameState="gameState"
+        :sides="sides"
+        :difficulty="difficulty"
+        @monster-hit="handleMonsterHit"
+      />
 
       <Motion
         v-if="damageFlash"
@@ -34,18 +33,19 @@
             <CurrencyDollarIcon class="w-5 h-5 text-yellow-400" />
             <span class="text-lg font-black">{{ gold }}</span>
           </div>
-          <div v-if="battleCombo > 1" class="flex items-center gap-2 bg-orange-600/80 backdrop-blur-md p-2 rounded-lg border border-orange-400/50 shadow-xl animate-bounce">
-            <BoltIcon class="w-5 h-5 text-white" />
-            <span class="text-lg font-black text-white">x{{ battleCombo }} COMBO</span>
-          </div>
-          <div class="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md border border-white/10 mt-1">
-            <SparklesIcon class="w-3 h-3 text-yellow-500" />
-            <span class="text-[10px] font-bold text-amber-200 uppercase tracking-tighter">Passive: +{{ currentPassiveIncome }} Gold</span>
+          
+          <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 shadow-xl">
+            <ClockIcon class="w-5 h-5 text-cyan-400" />
+            <span class="text-lg font-black font-mono" :class="timeLeft <= 30 ? 'text-red-500 animate-pulse' : 'text-white'">{{ formatTime(timeLeft) }}</span>
           </div>
         </div>
 
         <div class="flex flex-col items-end gap-1">
-          <div class="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 text-right shadow-xl">
+          <button @click="pauseGame" class="pointer-events-auto bg-black/60 hover:bg-black/80 text-white p-2 rounded-lg border border-white/20 shadow-xl flex items-center justify-center">
+            <PauseIcon class="w-6 h-6" />
+          </button>
+
+          <div class="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/20 text-right shadow-xl mt-1">
             <div class="text-[10px] uppercase opacity-70 tracking-widest font-bold">Defense Side</div>
             <div class="text-base font-black text-amber-400">{{ currentSideName }}</div>
           </div>
@@ -76,10 +76,6 @@
               <div class="flex justify-between items-center text-xs">
                 <span class="text-white/70">Archer Proficiency:</span>
                 <span class="text-green-400 font-bold">Lvl {{ commanderLevel }}</span>
-              </div>
-              
-              <div class="text-[9px] text-white/40 italic text-center mt-1 border-t border-white/10 pt-1">
-                Unlock permanent HP every 5 levels!
               </div>
             </div>
           </div>
@@ -142,7 +138,7 @@
     </div>
 
     <div v-if="gameState !== 'active'" class="absolute inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center">
-      <div class="max-w-sm space-y-6">
+      <div class="max-w-sm w-full space-y-6">
         <h1 class="text-4xl font-black tracking-tighter text-yellow-500">LEGEND OF DIVISION</h1>
         
         <div v-if="gameState === 'start'" class="space-y-4">
@@ -153,12 +149,39 @@
             <button class="bg-red-700 hover:bg-red-600 border-b border-red-900 text-sm py-3 rounded-lg font-bold" @click="startGame('hard')">HARD</button>
             <button class="bg-purple-700 hover:bg-purple-600 border-b border-purple-900 text-sm py-3 rounded-lg font-bold" @click="startGame('remix')">REMIX</button>
           </div>
+          <button @click="viewLeaderboard" class="w-full text-md py-3 bg-neutral-800 hover:bg-neutral-700 rounded-lg font-bold border border-neutral-600 text-white">🏆 View Leaderboards</button>
+        </div>
+
+        <div v-if="gameState === 'paused'" class="space-y-4">
+          <h2 class="text-3xl font-bold text-amber-500 uppercase">Game Paused</h2>
+          <button class="w-full text-lg py-4 bg-green-600 hover:bg-green-500 rounded-lg font-bold" @click="resumeGame">Resume Battle</button>
+          <button class="w-full text-lg py-4 bg-neutral-800 hover:bg-neutral-700 rounded-lg font-bold border border-neutral-600" @click="quitToMenu">Quit to Menu</button>
+        </div>
+
+        <div v-if="gameState === 'leaderboard'" class="space-y-4">
+          <h2 class="text-3xl font-bold text-yellow-500 uppercase">Leaderboards</h2>
+          <div class="bg-black/50 border border-white/20 rounded-lg p-4 h-64 overflow-y-auto text-left flex flex-col gap-2">
+            <div class="text-xs text-white/50 text-center italic mt-10">Connecting to Supabase Leaderboard...</div>
+          </div>
+          <button class="w-full text-lg py-4 bg-neutral-800 hover:bg-neutral-700 rounded-lg font-bold" @click="quitToMenu">Back to Menu</button>
+        </div>
+
+        <div v-if="gameState === 'victory'" class="space-y-4">
+          <h2 class="text-3xl font-bold text-green-500 uppercase tracking-widest">Siege Survived!</h2>
+          <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
+            <div class="flex justify-between text-sm"><span class="text-white/60">Waves Defeated:</span> <span class="text-white font-bold">{{ wavesCleared }}</span></div>
+            <div class="flex justify-between text-sm"><span class="text-white/60">Gold Saved:</span> <span class="text-white font-bold">{{ gold }}</span></div>
+            <div class="flex justify-between text-lg font-black border-t border-white/10 mt-2 pt-2"><span class="text-yellow-400">Final Score:</span> <span class="text-yellow-400">{{ calculatedScore }}</span></div>
+          </div>
+          <button class="w-full text-lg py-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold" @click="quitToMenu">Submit Score & Menu</button>
         </div>
 
         <div v-if="gameState === 'gameOver'" class="space-y-4">
           <h2 class="text-3xl font-bold text-red-500 uppercase tracking-widest">The Wall Has Fallen</h2>
-          <p class="text-xl text-amber-100">Glory Earned: {{ score }}</p>
-          <button class="w-full text-xl py-4 bg-blue-600 rounded-lg font-bold" @click="startGame(difficulty)">Return to Battle</button>
+          <div class="bg-white/5 p-4 rounded-xl border border-white/10 flex flex-col gap-1">
+            <div class="flex justify-between text-sm font-bold"><span class="text-white/60">Final Score:</span> <span class="text-white">{{ calculatedScore }}</span></div>
+          </div>
+          <button class="w-full text-lg py-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold" @click="quitToMenu">Return to Menu</button>
         </div>
       </div>
     </div>
@@ -170,7 +193,7 @@ import { ref, computed, onUnmounted, reactive } from 'vue'
 import {
   HeartIcon, ChevronLeftIcon, ChevronRightIcon,
   CurrencyDollarIcon, WrenchIcon, ShieldCheckIcon, BanknotesIcon,
-  BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon
+  BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon, PauseIcon, ClockIcon
 } from '@heroicons/vue/24/solid'
 import { Motion } from 'motion-v'
 import GameWorld from './GameWorld.vue'
@@ -184,11 +207,9 @@ const toast = {
 
 const gameState = ref('start')
 const difficulty = ref('easy')
-const score = ref(0)
 const viewAngle = ref(0)
 const damageFlash = ref(false)
 const isFiring = ref(false)
-const isWorldReady = ref(false) // 👈 Tracks if 3D is finished loading!
 const world = ref(null)
 let startX = 0
 
@@ -202,7 +223,18 @@ const xpToNextLevel = computed(() => commanderLevel.value * 500)
 const battleCombo = ref(0)
 const maxCombo = ref(0)
 
-const showStatsSheet = ref(false) // Toggle for panel
+const wavesCleared = ref(0) // 🌊 Track Waves Cleared
+
+// --- ⏱️ SURVIVAL TIMER (5 Minutes = 300 Seconds) ---
+const timeLeft = ref(300)
+let survivalTimer = null
+
+const showStatsSheet = ref(false)
+
+// Mathematical Score based on (Waves * 1000) + Gold Left
+const calculatedScore = computed(() => {
+  return (wavesCleared.value * 1000) + gold.value
+})
 
 const currentPassiveIncome = computed(() => {
   const base = 1 + (activeUpgrades.alchemist || 0) + commanderLevel.value
@@ -261,14 +293,65 @@ function buyItem(item) {
 }
 
 let gameTickInterval = null
+
+// --- 🎮 CORE GAME LOOPS ---
 function startGame(diff) {
   difficulty.value = typeof diff === 'string' ? diff : 'easy'
-  lives.value = 3; maxLives.value = 3; gold.value = 100; score.value = 0; viewAngle.value = 0; gameState.value = 'active'; commanderLevel.value = 1; commanderXp.value = 0; battleCombo.value = 0;
+  lives.value = 3; maxLives.value = 3; gold.value = 100; wavesCleared.value = 0; viewAngle.value = 0; gameState.value = 'active'; commanderLevel.value = 1; commanderXp.value = 0; battleCombo.value = 0;
+  timeLeft.value = 300 // Reset timer to 5 mins
+
   resetSide('center')
   setTimeout(() => { if (gameState.value === 'active') resetSide('left') }, 15000)
   setTimeout(() => { if (gameState.value === 'active') resetSide('right') }, 30000)
+
   if (gameTickInterval) clearInterval(gameTickInterval)
+  if (survivalTimer) clearInterval(survivalTimer)
+
   gameTickInterval = setInterval(updateMonsters, 100)
+  survivalTimer = setInterval(updateTimer, 1000)
+}
+
+function pauseGame() {
+  if (gameState.value === 'active') {
+    gameState.value = 'paused'
+    clearInterval(gameTickInterval)
+    clearInterval(survivalTimer)
+  }
+}
+
+function resumeGame() {
+  if (gameState.value === 'paused') {
+    gameState.value = 'active'
+    gameTickInterval = setInterval(updateMonsters, 100)
+    survivalTimer = setInterval(updateTimer, 1000)
+  }
+}
+
+function quitToMenu() {
+  gameState.value = 'start'
+  clearInterval(gameTickInterval)
+  clearInterval(survivalTimer)
+}
+
+function viewLeaderboard() {
+  gameState.value = 'leaderboard'
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s < 10 ? '0' : ''}${s}`
+}
+
+function updateTimer() {
+  if (timeLeft.value > 0) {
+    timeLeft.value--
+  } else {
+    // 🏆 Victory condition reached after 5 minutes!
+    gameState.value = 'victory'
+    clearInterval(gameTickInterval)
+    clearInterval(survivalTimer)
+  }
 }
 
 function resetSide(k) { sides[k].status = 'active'; sides[k].monsters = []; generateTaskForSide(k) }
@@ -328,7 +411,7 @@ function safeGenerateNextTask(k) {
 }
 
 async function handleSubmission(prep) {
-  if (isFiring.value || !isWorldReady.value) return // ⛔ Stops first-turn glitch!
+  if (isFiring.value) return
   const sideKey = activeSideKey.value
   const side = sides[sideKey]; 
   const t = side.task; 
@@ -340,8 +423,8 @@ async function handleSubmission(prep) {
 
   if (correct) {
     isFiring.value = true; 
+    wavesCleared.value++; // 🌊 Waves Cleared goes up here!
     battleCombo.value++; 
-    score.value += 10 * battleCombo.value; 
     commanderXp.value += 25 * battleCombo.value
     
     if (commanderXp.value >= xpToNextLevel.value) { 
@@ -385,11 +468,13 @@ function handleMonsterHit(k) {
   
   if (lives.value <= 0) { 
     gameState.value = 'gameOver'; 
-    if (gameTickInterval) clearInterval(gameTickInterval) 
+    clearInterval(gameTickInterval) 
+    clearInterval(survivalTimer)
   }
 }
 
 onUnmounted(() => {
-  if (gameTickInterval) clearInterval(gameTickInterval)
+  clearInterval(gameTickInterval)
+  clearInterval(survivalTimer)
 })
 </script>
