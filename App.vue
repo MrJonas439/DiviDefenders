@@ -161,8 +161,10 @@
         <div v-if="gameState === 'leaderboard'" class="space-y-4">
           <h2 class="text-3xl font-bold text-yellow-500 uppercase">Leaderboards</h2>
           <div class="bg-black/50 border border-white/20 rounded-lg p-4 h-64 overflow-y-auto text-left flex flex-col gap-2">
-            <div v-if="leaderboardData.length === 0" class="text-xs text-white/50 text-center italic mt-10">Connecting to Cloud Spreadsheet...</div>
-            <div v-for="(player, index) in leaderboardData" :key="index" class="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/10">
+            <div v-if="isLoadingLeaderboard" class="text-xs text-white/50 text-center italic mt-10">Connecting to Cloud Spreadsheet...</div>
+            <div v-else-if="leaderboardData.length === 0" class="text-xs text-white/50 text-center italic mt-10">No commanders on the board yet. Play a game to be the first!</div>
+            
+            <div v-else v-for="(player, index) in leaderboardData" :key="index" class="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/10">
               <span class="text-sm font-bold text-white"><span class="text-yellow-400 mr-1">#{{ index + 1 }}</span> {{ player.username }}</span>
               <span class="text-sm font-black text-amber-400">{{ player.score }} G</span>
             </div>
@@ -253,6 +255,8 @@ const showStatsSheet = ref(false)
 // --- 🏆 SUPABASE VARIABLES ---
 const playerName = ref('')
 const leaderboardData = ref([])
+// 🛠️ NEW: Loading variable to track query state!
+const isLoadingLeaderboard = ref(false)
 
 const calculatedScore = computed(() => {
   return (wavesCleared.value * 1000) + gold.value
@@ -315,8 +319,6 @@ function buyItem(item) {
 }
 
 let gameTickInterval = null
-
-// --- FIXED VARIABLES FOR MONSTER/GOLD LOOP ---
 let lastGoldTick = Date.now()
 const isGeneratingTask = reactive({ left: false, center: false, right: false })
 
@@ -327,7 +329,6 @@ function startGame(diff) {
   timeLeft.value = 300 
   playerName.value = ''
 
-  // Fix: Reset tracking variables so game restarts cleanly after a game over!
   lastGoldTick = Date.now()
   isGeneratingTask.left = false
   isGeneratingTask.center = false
@@ -370,6 +371,7 @@ function quitToMenu() {
 async function viewLeaderboard() {
   gameState.value = 'leaderboard'
   leaderboardData.value = []
+  isLoadingLeaderboard.value = true // 🛠️ Start the loading phase
 
   try {
     const { data, error } = await supabase
@@ -382,10 +384,12 @@ async function viewLeaderboard() {
       toast.error('Could not pull leaderboard')
       console.error(error)
     } else {
-      leaderboardData.value = data
+      leaderboardData.value = data || []
     }
   } catch (err) {
     console.error('Leaderboard Fetch Error:', err)
+  } finally {
+    isLoadingLeaderboard.value = false // 🛠️ Data fetch is over, so disable the loading phase
   }
 }
 
@@ -414,7 +418,7 @@ async function submitScoreToSupabase() {
     console.error('Submit Error:', err)
   }
 
-  quitToMenu() // Go back to menu when done
+  quitToMenu()
 }
 
 function formatTime(seconds) {
@@ -493,10 +497,8 @@ async function handleSubmission(prep) {
   const t = side.task; 
   if (!t || isGeneratingTask[sideKey]) return
 
-  // 🧮 Multiply placed monsters by arrows per monster
   const calculatedTotal = prep.monsterCount * prep.perMonster
 
-  // ✅ Did the user group them correctly?
   const correct = t.type === 'sharing' 
     ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
     : (calculatedTotal === t.total && prep.monsterCount === t.answer)
@@ -518,13 +520,11 @@ async function handleSubmission(prep) {
     gold.value += Math.floor(50 * quiverBonus * (1 + battleCombo.value * 0.1))
     
     try { 
-      // 🚀 FORCED CONNECTION: If Vue ref is blank, find the 3D canvas manually!
       const activeWorld = world.value || document.querySelector('canvas')?.__vueParentComponent?.exposed
 
       if (activeWorld && typeof activeWorld.fireVolley === 'function') {
         await activeWorld.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
       } else {
-        // 🚨 Fallback safety if Three.js is lagging: Pause for a second to let it catch up
         await new Promise(r => setTimeout(r, 1000))
       }
     } catch (e) {
