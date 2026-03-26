@@ -22,15 +22,17 @@
         </button>
 
         <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center font-black text-xs text-white mb-1 shadow-md relative">
-          <span class="absolute -top-1 -right-1 bg-black text-[10px] px-1 rounded">M{{ mIdx + 1 }}</span>
+          <span class="absolute text-yellow-300 font-black text-lg drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+            {{ monster.arrows }}
+          </span>
           👾
         </div>
 
-        <div class="flex flex-wrap gap-1 justify-center w-full max-h-[45px] overflow-y-auto">
+        <div class="flex flex-wrap gap-0.5 justify-center w-full max-h-[45px] overflow-y-auto">
           <div 
             v-for="aIdx in monster.arrows" 
             :key="aIdx" 
-            class="w-1 h-5 bg-yellow-400 rounded-sm shadow-sm relative cursor-pointer hover:bg-red-400"
+            class="w-1 h-4 bg-yellow-400 rounded-sm shadow-sm relative cursor-pointer hover:bg-red-400"
             @click.stop="returnArrow(mIdx)"
           ></div>
         </div>
@@ -48,7 +50,7 @@
         <div 
           v-for="idx in unassignedArrows" 
           :key="idx" 
-          class="w-1.5 h-6 bg-yellow-500 rounded-sm shadow-md flex items-center justify-center relative"
+          class="w-1.5 h-5 bg-yellow-500 rounded-sm shadow-md flex items-center justify-center relative"
         >
           <div class="absolute top-0 w-2.5 h-1 bg-neutral-400 rounded-sm"></div>
         </div>
@@ -101,14 +103,12 @@ function addMonster() {
   if (monsters.value.length === 1) activeMonsterIdx.value = 0
 }
 
-// 🎯 Removes the monster and safely refunds their arrows to the pool
 function removeMonster(monsterIdx) {
   const arrowsToRefund = monsters.value[monsterIdx].arrows
   unassignedArrows.value += arrowsToRefund
   
   monsters.value.splice(monsterIdx, 1)
 
-  // Adjust active index so it doesn't break
   if (monsters.value.length === 0) {
     activeMonsterIdx.value = 0
   } else if (activeMonsterIdx.value >= monsters.value.length) {
