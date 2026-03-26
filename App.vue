@@ -6,14 +6,15 @@
       :animate="damageFlash ? { x: [-10, 10, -10, 10, 0] } : { x: 0 }"
       :transition="{ duration: 0.3 }"
     >
-      <GameWorld
-        ref="world"
-        :viewAngle="viewAngle"
-        :gameState="gameState"
-        :sides="sides"
-        :difficulty="difficulty"
-        @monster-hit="handleMonsterHit"
-      />
+     <GameWorld
+  ref="world"
+  :viewAngle="viewAngle"
+  :gameState="gameState"
+  :sides="sides"
+  :difficulty="difficulty"
+  @monster-hit="handleMonsterHit"
+  @world-ready="isWorldReady = true" 
+/>
 
       <Motion
         v-if="damageFlash"
@@ -187,6 +188,7 @@ const score = ref(0)
 const viewAngle = ref(0)
 const damageFlash = ref(false)
 const isFiring = ref(false)
+const isWorldReady = ref(false) // 👈 Tracks if 3D is finished loading!
 const world = ref(null)
 let startX = 0
 
@@ -326,7 +328,7 @@ function safeGenerateNextTask(k) {
 }
 
 async function handleSubmission(prep) {
-  if (isFiring.value) return
+  if (isFiring.value || !isWorldReady.value) return // ⛔ Stops first-turn glitch!
   const sideKey = activeSideKey.value
   const side = sides[sideKey]; 
   const t = side.task; 
