@@ -7,12 +7,21 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as THREE from 'https://esm.sh/three@0.170.0'
 
 const props = defineProps({ viewAngle: Number, gameState: String, sides: Object, difficulty: String })
-const emit = defineEmits(['monster-hit'])
+const emit = defineEmits(['monster-hit', 'world-ready']) // 👈 Added world-ready!
 const container = ref(null)
 let scene, camera, renderer, clock, monsterGroup, bowGroup, targetRotation = 0, currentRotation = 0, animationFrameId = null
 let monsterMaterial, arrowMaterial, activeArrows = []
 
-onMounted(() => { initThree(); animate(); window.addEventListener('resize', onResize) })
+onMounted(() => { 
+  initThree(); 
+  animate(); 
+  window.addEventListener('resize', onResize);
+  
+  // 🏁 Tell App.vue that the Three.js canvas is awake and painting!
+  setTimeout(() => {
+    emit('world-ready')
+  }, 500) 
+})
 
 function initThree() {
   scene = new THREE.Scene(); 
