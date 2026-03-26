@@ -248,36 +248,105 @@ function generateTaskForSide(k) {
   side.monsters = Array.from({ length: mCount }, (_, i) => ({ id: Math.random().toString(36).substr(2, 9), progress: 0, idx: i, count: mCount }))
 }
 
+// --- 🛠️ REPLACEMENT CODE FOR THE BOTTOM OF APP.VUE SCRIPT ---
+
 let lastGoldTick = Date.now()
+const isGeneratingTask = reactive({ left: false, center: false, right: false }) // 👈 Prevents duplicate wave overlapping!
+
 function updateMonsters() {
   if (gameState.value !== 'active') return
-  const now = Date.now(); const tick = activeUpgrades.alchemist ? 3000 : 5000
+  const now = Date.now(); 
+  const tick = activeUpgrades.alchemist ? 3000 : 5000
   if (now - lastGoldTick > tick) { gold.value += currentPassiveIncome.value; lastGoldTick = now }
-  const dt = 0.1 / 120 * (activeUpgrades.ice ? 0.8 : 1)
+  
+  const dt = 0.005 * (activeUpgrades.ice ? 0.8 : 1) // 👈 Smoother speed step
+  
   Object.keys(sides).forEach(k => {
-    if (k === 'shop' || sides[k].status !== 'active') return
-    let failed = false; sides[k].monsters.forEach(m => { m.progress += dt; if (m.progress >= 1.0) failed = true })
+    if (k === 'shop' || sides[k].status !== 'active' || isGeneratingTask[k]) return // 👈 Skip if resetting!
+    
+    let failed = false; 
+    sides[k].monsters.forEach(m => { 
+      m.progress += dt; 
+      if (m.progress >= 1.0) failed = true 
+    })
+    
     if (failed) handleMonsterHit(k)
   })
 }
 
+// 🛡️ Consolidated, safe task generation
+function safeGenerateNextTask(k) {
+  if (isGeneratingTask[k] || gameState.value !== 'active') return
+  isGeneratingTask[k] = true
+  
+  // Clear old data instantly so the UI doesn't glitch
+  sides[k].monsters = []
+  sides[k].task = null 
+
+  setTimeout(() => {
+    if (gameState.value !== 'active') {
+      isGeneratingTask[k] = false
+      return
+    }
+    generateTaskForSide(k)
+    isGeneratingTask[k] = false
+  }, 3000) // 3-second breathing room between waves
+}
+
 async function handleSubmission(prep) {
   if (isFiring.value) return
-  const side = sides[activeSideKey.value]; const t = side.task; if (!t) return
-  const correct = (t.type === 'sharing' ? (prep.monsterCount === t.count && prep.perMonster === t.answer) : (prep.totalArrows === t.total && prep.monsterCount === t.answer)) && prep.isConsistent
+  const sideKey = activeSideKey.value
+  const side = sides[sideKey]; 
+  const t = side.task; 
+  if (!t || isGeneratingTask[sideKey]) return // 👈 Abort if resetting
+
+  const correct = (t.type === 'sharing' 
+    ? (prep.monsterCount === t.count && prep.perMonster === t.answer) 
+    : (prep.totalArrows === t.total && prep.monsterCount === t.answer)) && prep.isConsistent
+
   if (correct) {
-    isFiring.value = true; battleCombo.value++; score.value += 10 * battleCombo.value; commanderXp.value += 25 * battleCombo.value
-    if (commanderXp.value >= xpToNextLevel.value) { commanderXp.value -= xpToNextLevel.value; commanderLevel.value++; gold.value += 200; toast.info(`Level ${commanderLevel.value}!`) }
+    isFiring.value = true; 
+    battleCombo.value++; 
+    score.value += 10 * battleCombo.value; 
+    commanderXp.value += 25 * battleCombo.value
+    
+    if (commanderXp.value >= xpToNextLevel.value) { 
+      commanderXp.value -= xpToNextLevel.value; 
+      commanderLevel.value++; 
+      gold.value += 200; 
+      toast.info(`Level ${commanderLevel.value}!`) 
+    }
+    
     gold.value += Math.floor(50 * (activeUpgrades.quiver ? 1.2 : 1) * (1 + battleCombo.value * 0.1))
-    try { if (world.value) await world.value.fireVolley(activeSideKey.value, prep.monsterCount, prep.perMonster) } finally { side.monsters = []; side.task = null; isFiring.value = false; setTimeout(() => generateTaskForSide(activeSideKey.value), 3000) }
-  } else { battleCombo.value = 0; if (world.value) world.value.fireDeflect(activeSideKey.value); toast.error('Deflected!') }
+    
+    try { 
+      if (world.value) await world.value.fireVolley(sideKey, prep.monsterCount, prep.perMonster) 
+    } finally { 
+      isFiring.value = false; 
+      safeGenerateNextTask(sideKey) // 👈 Safe handoff
+    }
+  } else { 
+    battleCombo.value = 0; 
+    if (world.value) world.value.fireDeflect(sideKey); 
+    toast.error('Deflected!') 
+  }
 }
 
 function handleMonsterHit(k) {
-  if (gameState.value !== 'active') return
-  lives.value = Math.max(0, lives.value - 1); damageFlash.value = true; setTimeout(() => damageFlash.value = false, 300)
-  sides[k].monsters = []; setTimeout(() => generateTaskForSide(k), 2000)
-  if (lives.value <= 0) { gameState.value = 'gameOver'; clearInterval(gameTickInterval) }
+  if (gameState.value !== 'active' || isGeneratingTask[k]) return
+  
+  lives.value = Math.max(0, lives.value - 1); 
+  damageFlash.value = true; 
+  setTimeout(() => damageFlash.value = false, 300)
+  
+  safeGenerateNextTask(k) // 👈 Safe handoff
+  
+  if (lives.value <= 0) { 
+    gameState.value = 'gameOver'; 
+    if (gameTickInterval) clearInterval(gameTickInterval) 
+  }
 }
-onUnmounted(() => clearInterval(gameTickInterval))
-</script>
+
+onUnmounted(() => {
+  if (gameTickInterval) clearInterval(gameTickInterval)
+})
