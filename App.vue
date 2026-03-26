@@ -18,8 +18,8 @@
       <!-- Damage Overlay (Screen Flash) -->
       <Motion
         v-if="damageFlash"
-        initial="{ opacity: 0 }"
-        animate="{ opacity: [0, 0.6, 0] }"
+        :initial="{ opacity: 0 }"
+        :animate="{ opacity: [0, 0.6, 0] }"
         :transition="{ duration: 0.3 }"
         class="absolute inset-0 bg-red-600/40 pointer-events-none z-50"
       />
