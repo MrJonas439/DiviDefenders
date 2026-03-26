@@ -58,18 +58,18 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between w-full max-w-2xl">
-      <button @click="resetPrep" class="px-2 py-1 text-xs text-white/50 hover:text-white font-bold bg-white/5 rounded border border-white/10 hover:bg-white/10">Reset</button>
+   <div class="flex items-center justify-between w-full max-w-2xl relative z-[9999]">
+  <button @click="resetPrep" class="px-2 py-1 text-xs text-white/50 hover:text-white font-bold bg-white/5 rounded border border-white/10 hover:bg-white/10">Reset</button>
 
-      <button 
-        @click="fireVolley" 
-        class="h-10 px-6 font-black rounded-lg tracking-widest text-xs shadow-xl transition-all flex items-center justify-center gap-2"
-        :class="canFire ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:scale-105 hover:shadow-orange-500/30' : 'bg-neutral-800 text-white/30 cursor-not-allowed'"
-        :disabled="!canFire"
-      >
-        LAUNCH VOLLEY
-      </button>
-    </div>
+  <button 
+    @click="fireVolley" 
+    class="h-10 px-6 font-black rounded-lg tracking-widest text-xs shadow-xl transition-all flex items-center justify-center gap-2 relative z-[10000] pointer-events-auto"
+    :class="canFire ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:scale-105 hover:shadow-orange-500/30' : 'bg-neutral-800 text-white/30 cursor-not-allowed'"
+    :disabled="!canFire"
+  >
+    LAUNCH VOLLEY (TEST)
+  </button>
+</div>
   </div>
 </template>
 
