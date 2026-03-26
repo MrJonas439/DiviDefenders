@@ -133,11 +133,7 @@
 
 <script setup>
 import { ref, computed, onUnmounted, reactive } from 'vue'
-import {
-  HeartIcon, ChevronLeftIcon, ChevronRightIcon,
-  CurrencyDollarIcon, WrenchIcon, ShieldCheckIcon, BanknotesIcon,
-  BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon
-} from '@heroicons/vue/16/solid'
+import { HeartIcon, ChevronLeftIcon, ChevronRightIcon, CurrencyDollarIcon, WrenchIcon, ShieldCheckIcon, BanknotesIcon, BoltIcon, FireIcon, DocumentTextIcon, SparklesIcon } from '@heroicons/vue/24/solid'
 import { Button, RoundButton, useToast } from 'elements'
 import { Motion } from 'motion-v'
 import GameWorld from './GameWorld.vue'
