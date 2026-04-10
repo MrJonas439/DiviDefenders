@@ -84,7 +84,7 @@
 
       <div class="absolute inset-0 z-20 touch-none" @pointerdown="onPointerDown" @pointerup="onPointerUp"></div>
 
-      <div v-if="gameState === 'active' && activeSideWave.task" class="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs px-2 z-40 pointer-events-none">
+      <div v-if="gameState === 'active' && activeSideWave.task && activeSideKey !== 'shop'" class="absolute top-16 left-1/2 -translate-x-1/2 w-full max-w-xs px-2 z-40 pointer-events-none">
         <MathHUD :task="activeSideWave.task" />
       </div>
 
@@ -133,8 +133,23 @@
       </div>
     </Motion>
 
-    <div v-if="gameState === 'active'" class="shrink-0 z-50">
-      <PrepArea :task="activeSideWave.task" @submit="handleSubmission" />
+    <div v-if="gameState === 'active'" class="shrink-0 z-50 relative bg-neutral-900 shadow-[0_-10px_30px_rgba(0,0,0,0.4)]">
+      
+      <PrepArea 
+        v-if="activeSideKey !== 'shop' && activeSideWave.task" 
+        :task="activeSideWave.task" 
+        @submit="handleSubmission" 
+      />
+      
+      <div 
+        v-else-if="activeSideKey !== 'shop' && !activeSideWave.task" 
+        class="h-32 w-full bg-neutral-950 border-t border-white/10 flex flex-col items-center justify-center gap-2"
+      >
+        <div class="w-6 h-6 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin"></div>
+        <div class="text-amber-600/60 text-xs font-black tracking-[0.2em] uppercase animate-pulse">
+          Scouting Enemy Formation...
+        </div>
+      </div>
     </div>
 
     <div v-if="gameState !== 'active'" class="absolute inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-6 text-center">
@@ -217,8 +232,6 @@ import { Motion } from 'motion-v'
 import GameWorld from './GameWorld.vue'
 import PrepArea from './PrepArea.vue'
 import MathHUD from './MathHUD.vue'
-
-// 📡 IMPORT SUPABASE CONNECTION FILE
 import { supabase } from './supabase.js'
 
 const toast = {
@@ -234,7 +247,6 @@ const isFiring = ref(false)
 const world = ref(null)
 let startX = 0
 
-// --- 🎖️ STATS & LEVEL PROGRESSION ---
 const lives = ref(3)
 const maxLives = ref(3)
 const gold = ref(100)
@@ -242,20 +254,14 @@ const commanderLevel = ref(1)
 const commanderXp = ref(0)
 const xpToNextLevel = computed(() => commanderLevel.value * 500)
 const battleCombo = ref(0)
-const maxCombo = ref(0)
-
 const wavesCleared = ref(0) 
 
-// --- ⏱️ SURVIVAL TIMER ---
 const timeLeft = ref(300)
 let survivalTimer = null
-
 const showStatsSheet = ref(false)
 
-// --- 🏆 SUPABASE VARIABLES ---
 const playerName = ref('')
 const leaderboardData = ref([])
-// 🛠️ NEW: Loading variable to track query state!
 const isLoadingLeaderboard = ref(false)
 
 const calculatedScore = computed(() => {
@@ -322,7 +328,6 @@ let gameTickInterval = null
 let lastGoldTick = Date.now()
 const isGeneratingTask = reactive({ left: false, center: false, right: false })
 
-// --- 🎮 CORE GAME LOOPS ---
 function startGame(diff) {
   difficulty.value = typeof diff === 'string' ? diff : 'easy'
   lives.value = 3; maxLives.value = 3; gold.value = 100; wavesCleared.value = 0; viewAngle.value = 0; gameState.value = 'active'; commanderLevel.value = 1; commanderXp.value = 0; battleCombo.value = 0;
@@ -367,11 +372,10 @@ function quitToMenu() {
   clearInterval(survivalTimer)
 }
 
-// --- 🏆 FETCH SCORES FROM SUPABASE ---
 async function viewLeaderboard() {
   gameState.value = 'leaderboard'
   leaderboardData.value = []
-  isLoadingLeaderboard.value = true // 🛠️ Start the loading phase
+  isLoadingLeaderboard.value = true 
 
   try {
     const { data, error } = await supabase
@@ -389,11 +393,10 @@ async function viewLeaderboard() {
   } catch (err) {
     console.error('Leaderboard Fetch Error:', err)
   } finally {
-    isLoadingLeaderboard.value = false // 🛠️ Data fetch is over, so disable the loading phase
+    isLoadingLeaderboard.value = false 
   }
 }
 
-// --- 🚀 PUSH SCORES TO SUPABASE ---
 async function submitScoreToSupabase() {
   if (!playerName.value) return
 
