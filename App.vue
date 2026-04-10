@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full w-full bg-neutral-900 text-white overflow-hidden relative flex flex-col font-sans select-none touch-none">
+  <div class="fixed inset-0 h-[100dvh] w-full bg-neutral-900 text-white overflow-hidden flex flex-col font-sans select-none touch-none">
     
     <Motion
       class="flex-1 relative overflow-hidden"
